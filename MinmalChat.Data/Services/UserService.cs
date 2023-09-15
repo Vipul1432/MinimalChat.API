@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Helpers;
@@ -122,6 +123,18 @@ namespace MinmalChat.Data.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        /// <summary>
+        /// Retrieves a list of all registered users asynchronously.
+        /// </summary>
+        /// <returns>A Task containing a list of MinimalChatUser objects.</returns>
+        /// <remarks>
+        /// This method asynchronously fetches a list of all registered users in the system.
+        /// </remarks>
+        public async Task<List<MinimalChatUser>> GetAllUsersAsync()
+        {
+            return await _userManager.Users.ToListAsync();
         }
     }
 }

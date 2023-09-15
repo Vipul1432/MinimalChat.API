@@ -4,10 +4,11 @@ using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
+using System.Security.Claims;
 
 namespace MinimalChat.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api")]
     [ApiController]
     public class UsersController : ControllerBase
     {
@@ -96,11 +97,54 @@ namespace MinimalChat.API.Controllers
                 Message = "Login successful",
                 Data = new LoginDto
                 {
-                   Email = model.Email,
-                   JwtToken = token,
+                    Email = model.Email,
+                    JwtToken = token,
                 },
                 StatusCode = 200
             });
+        }
+
+        [HttpGet("users")]
+        [Authorize]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            try
+            {
+                // fetch current UserId
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var users = await _userService.GetAllUsersAsync();
+
+                var usersList = new List<UserDto>();
+
+                foreach (var user in users)
+                {
+                    // Skip the current user
+                    if (user.Id == currentUserId)
+                        continue;
+                    usersList.Add(new UserDto
+                    {
+                        Id = user.Id,
+                        Name = user.Name,
+                        Email = user.Email
+                    });
+                }
+
+                return Ok(new ApiResponse<List<UserDto>>
+                {
+                    Message = "User list retrieved successfully",
+                    Data = usersList,
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<UserDto>
+                {
+                    Message = ex.Message,
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
         }
     }
 }

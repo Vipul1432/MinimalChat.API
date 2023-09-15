@@ -43,5 +43,6 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>The generated JWT token as a string.</returns>
         string GenerateJwtToken(MinimalChatUser user);
 
+        Task<List<MinimalChatUser>> GetAllUsersAsync();
     }
 }
