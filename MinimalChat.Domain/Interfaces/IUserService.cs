@@ -43,6 +43,20 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>The generated JWT token as a string.</returns>
         string GenerateJwtToken(MinimalChatUser user);
 
+        /// <summary>
+        /// Retrieves a list of all registered users asynchronously.
+        /// </summary>
+        /// <returns>A Task containing a list of MinimalChatUser objects.</returns>
+        /// <remarks>
+        /// This method asynchronously fetches a list of all registered users in the system.
+        /// </remarks>
         Task<List<MinimalChatUser>> GetAllUsersAsync();
+
+        /// <summary>
+        /// Checks if a user with the specified user ID exists in the database.
+        /// </summary>
+        /// <param name="userId">The ID of the user to check for existence.</param>
+        /// <returns>True if the user exists; otherwise, false.</returns>
+        Task<bool> GetUserByIdAsync(string userId);
     }
 }

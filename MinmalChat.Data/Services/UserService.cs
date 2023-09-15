@@ -136,5 +136,20 @@ namespace MinmalChat.Data.Services
         {
             return await _userManager.Users.ToListAsync();
         }
+
+        /// <summary>
+        /// Checks if a user with the specified user ID exists in the database.
+        /// </summary>
+        /// <param name="userId">The ID of the user to check for existence.</param>
+        /// <returns>True if the user exists; otherwise, false.</returns>
+        public async Task<bool> GetUserByIdAsync(string userId)
+        {
+           var existUser =  await _userManager.Users.FirstOrDefaultAsync(user => user.Id == userId);
+            if (existUser == null)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

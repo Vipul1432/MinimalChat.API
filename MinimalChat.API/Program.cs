@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
 using MinmalChat.Data.Context;
+using MinmalChat.Data.Repository;
 using MinmalChat.Data.Services;
 using System.Text;
 
@@ -65,6 +66,7 @@ namespace MinimalChat.API
             // This allows for the use of dependency injection to provide instances of these repositories
             // to various parts of the application, ensuring data access is scoped to the current request.
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 
             builder.Services.AddControllers();
@@ -113,8 +115,8 @@ namespace MinimalChat.API
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 
