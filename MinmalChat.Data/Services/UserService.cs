@@ -1,19 +1,27 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace MinmalChat.Data.Services
 {
     public class UserService : IUserService
     {
         private readonly UserManager<MinimalChatUser> _userManager;
+        private readonly IConfiguration _configuration;
 
-        public UserService(UserManager<MinimalChatUser> userManager)
+        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration)
         {
             _userManager = userManager;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -66,6 +74,54 @@ namespace MinmalChat.Data.Services
                 Data = null,
                 StatusCode = 400 // BadRequest
             };
+        }
+
+        /// <summary>
+        /// Retrieves a user by their email address asynchronously.
+        /// </summary>
+        /// <param name="email">The email address of the user to retrieve.</param>
+        /// <returns>The user object if found; otherwise, null.</returns>
+        public async Task<MinimalChatUser?> GetUserByEmailAsync(string email)
+        {
+            return await _userManager.FindByEmailAsync(email);
+        }
+
+        /// <summary>
+        /// Validates a user's password asynchronously.
+        /// </summary>
+        /// <param name="user">The user whose password needs validation.</param>
+        /// <param name="password">The password to validate.</param>
+        /// <returns>True if the password is valid for the user; otherwise, false.</returns>
+        public async Task<bool> ValidatePasswordAsync(MinimalChatUser user, string password)
+        {
+            return await _userManager.CheckPasswordAsync(user, password);
+        }
+
+        /// <summary>
+        /// Generates a JWT token for user authentication.
+        /// </summary>
+        /// <param name="user">The user for whom the token is generated.</param>
+        /// <returns>The generated JWT token as a string.</returns>
+        public string GenerateJwtToken(MinimalChatUser user)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName),
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                _configuration["JWT:ValidIssuer"],
+                _configuration["JWT:ValidAudience"],
+                claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToInt32(_configuration["JWT:LifetimeInMinutes"])),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

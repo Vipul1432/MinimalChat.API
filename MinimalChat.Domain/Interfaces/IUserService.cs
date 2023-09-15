@@ -21,5 +21,27 @@ namespace MinimalChat.Domain.Interfaces
         /// </returns>
         Task<ApiResponse<RegistrationDto>> RegisterAsync(Registration model);
 
+        /// <summary>
+        /// Retrieves a user by their email address asynchronously.
+        /// </summary>
+        /// <param name="email">The email address of the user to retrieve.</param>
+        /// <returns>The user object if found; otherwise, null.</returns>
+        Task<MinimalChatUser?> GetUserByEmailAsync(string email);
+
+        /// <summary>
+        /// Validates a user's password asynchronously.
+        /// </summary>
+        /// <param name="user">The user whose password needs validation.</param>
+        /// <param name="password">The password to validate.</param>
+        /// <returns>True if the password is valid for the user; otherwise, false.</returns>
+        Task<bool> ValidatePasswordAsync(MinimalChatUser user, string password);
+
+        /// <summary>
+        /// Generates a JWT token for user authentication.
+        /// </summary>
+        /// <param name="user">The user for whom the token is generated.</param>
+        /// <returns>The generated JWT token as a string.</returns>
+        string GenerateJwtToken(MinimalChatUser user);
+
     }
 }
