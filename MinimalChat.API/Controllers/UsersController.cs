@@ -104,6 +104,14 @@ namespace MinimalChat.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Retrieves a list of users, excluding the currently logged-in user.
+        /// </summary>
+        /// <returns>An IActionResult containing a list of UserDto objects.</returns>
+        /// <remarks>
+        /// This endpoint retrieves a list of all users registered in the system, excluding the
+        /// currently authenticated user. It skips the current user while constructing the user list.
+        /// </remarks>
         [HttpGet("users")]
         [Authorize]
         public async Task<IActionResult> GetAllUsers()
