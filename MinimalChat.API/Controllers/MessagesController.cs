@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.SqlServer.Server;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using MinmalChat.Data.Services;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace MinimalChat.API.Controllers
@@ -151,6 +153,97 @@ namespace MinimalChat.API.Controllers
                     Message = deleted.Message,
                     Data = null,
                     StatusCode = deleted.StatusCode
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<Message>
+                {
+                    Message = ex.Message,
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the conversation history between two users based on specified query parameters.
+        /// </summary>
+        /// <param name="queryParameters">The query parameters specifying user IDs, timestamp, count, and sort order.</param>
+        /// <returns>
+        /// 200 OK if the conversation history is retrieved successfully.
+        /// 400 Bad Request if validation errors occur or if the conversation is not found.
+        /// 401 Unauthorized if the user is not authorized to access the conversation.
+        /// 500 Internal Server Error if an unexpected error occurs.
+        /// </returns>
+        [HttpGet("messages")]
+        public async Task<IActionResult> GetConversationHistory([FromQuery] ConversationHistoryDto queryParameters)
+        {
+            try
+            {
+                // check the model Validations
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Message>
+                    {
+                        Message = "Invalid request parameters.",
+                        Data = null,
+                        StatusCode = 400
+                    });
+                }
+
+                // Get the current user's ID from the JWT token
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Unauthorized(new ApiResponse<Message>
+                    {
+                        Message = "Unauthorized access",
+                        Data = null,
+                        StatusCode = 401
+                    });
+                }
+
+                // Check receiverUSer Id exist or not 
+                var receiverUserId = await _userService.GetUserByIdAsync(queryParameters.UserId.ToString());
+                if (!receiverUserId)
+                {
+                    return BadRequest(new ApiResponse<Message>
+                    {
+                        Message = "User not found.",
+                        Data = null,
+                        StatusCode = 400
+                    });
+                }
+
+                // Retrieve the conversation history
+                var messages = await _messageRepository.GetConversationHistoryAsync(queryParameters, currentUserId);
+
+                if (messages == null || messages.Count == 0)
+                {
+                    return BadRequest(new ApiResponse<Message>
+                    {
+                        Message = "Conversation not found.",
+                        Data = null,
+                        StatusCode = 400
+                    });
+                }
+                // Map messages
+                var messageDtos = messages.Select(message => new Message
+                {
+                    Id = message.Id,
+                    SenderId = message.SenderId,
+                    ReceiverId = message.ReceiverId,
+                    Content = message.Content,
+                    Timestamp = message.Timestamp
+                }).ToList();
+
+                return Ok(new ApiResponse<List<Message>>
+                {
+                    Message = "Conversation history retrieved successfully",
+                    Data = messageDtos,
+                    StatusCode = 200
                 });
             }
             catch (Exception ex)

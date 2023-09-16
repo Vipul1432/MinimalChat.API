@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
@@ -117,5 +119,38 @@ namespace MinmalChat.Data.Repository
             };
         }
 
+        /// <summary>
+        /// Retrieves the conversation history between two users based on specified query parameters.
+        /// </summary>
+        /// <param name="queryParameters">The query parameters specifying user IDs, timestamp, count, and sort order.</param>
+        /// <param name="currentUserId">The ID of the current user.</param>
+        /// <returns>A list of messages representing the conversation history.</returns>
+        public async Task<List<Message?>> GetConversationHistoryAsync(ConversationHistoryDto queryParameters, string currentUserId)
+        {
+            // Create a query to retrieve messages between two users within the specified timestamp range
+            var query = _context.Messages.Where(m =>
+                                            (m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId.ToString()) ||
+                                            (m.SenderId == queryParameters.UserId.ToString() && m.ReceiverId == currentUserId))
+                                         .Where(m => m.Timestamp <= queryParameters.Before);
+
+            // Sort the messages based on the specified sort order
+            if (queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc)
+            {
+                query = query.OrderBy(m => m.Timestamp);
+            }
+            else
+            {
+                query = query.OrderByDescending(m => m.Timestamp);
+            }
+
+            // Limit the number of messages retrieved based on the specified count
+            if (queryParameters.Count > 0)
+            {
+                query = query.Take(queryParameters.Count);
+            }
+
+            // Execute the query and return the conversation history
+            return await query.ToListAsync();
+        }
     }
 }
