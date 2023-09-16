@@ -1,4 +1,5 @@
-﻿using MinimalChat.Domain.Models;
+﻿using MinimalChat.Domain.DTOs;
+using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using System;
 using System.Collections.Generic;
@@ -38,5 +39,13 @@ namespace MinimalChat.Domain.Interfaces
         /// <param name="currentUserId">The ID of the current authenticated user.</param>
         /// <returns>An <see cref="ApiResponse{T}"/> indicating the result of the delete operation.</returns>
         Task<ApiResponse<Message>> DeleteMessageAsync(int messageId, string currentUserId);
+
+        /// <summary>
+        /// Retrieves the conversation history between two users based on specified query parameters.
+        /// </summary>
+        /// <param name="queryParameters">The query parameters specifying user IDs, timestamp, count, and sort order.</param>
+        /// <param name="currentUserId">The ID of the current user.</param>
+        /// <returns>A list of messages representing the conversation history.</returns>
+        Task<List<Message?>> GetConversationHistoryAsync(ConversationHistoryDto queryParameters,string currentUserId);
     }
 }
