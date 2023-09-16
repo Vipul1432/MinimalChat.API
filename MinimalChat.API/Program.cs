@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MinimalChat.API.Middleware;
 using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
 using MinmalChat.Data.Context;
@@ -67,6 +68,7 @@ namespace MinimalChat.API
             // to various parts of the application, ensuring data access is scoped to the current request.
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+            builder.Services.AddScoped<IRequestLogRepository, RequestLogRepository>();
 
 
             builder.Services.AddControllers();
@@ -112,11 +114,14 @@ namespace MinimalChat.API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
+          
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Request Logging Middleware
+            app.UseRequestLoggingMiddleware();
 
             app.MapControllers();
 

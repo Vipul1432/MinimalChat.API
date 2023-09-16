@@ -17,5 +17,6 @@ namespace MinmalChat.Data.Context
         }
 
         public DbSet<Message> Messages { get; set; }
+        public DbSet<RequestLog> RequestLogs { get; set; }
     }
 }
