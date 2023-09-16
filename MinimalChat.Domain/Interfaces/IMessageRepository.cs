@@ -30,5 +30,13 @@ namespace MinimalChat.Domain.Interfaces
         /// - Unauthorized access with a status code of 401 if the user is not authorized to edit the message.
         /// </returns>
         Task<ApiResponse<Message>> EditMessageAsync(int messageId, string updatedContent, string currentUserId);
+
+        /// <summary>
+        /// Deletes a message with the specified message ID if it exists and if the current user is the sender.
+        /// </summary>
+        /// <param name="messageId">The ID of the message to delete.</param>
+        /// <param name="currentUserId">The ID of the current authenticated user.</param>
+        /// <returns>An <see cref="ApiResponse{T}"/> indicating the result of the delete operation.</returns>
+        Task<ApiResponse<Message>> DeleteMessageAsync(int messageId, string currentUserId);
     }
 }

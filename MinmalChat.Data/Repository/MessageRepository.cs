@@ -74,5 +74,48 @@ namespace MinmalChat.Data.Repository
                 StatusCode = 200
             };
         }
+
+        /// <summary>
+        /// Deletes a message with the specified message ID if it exists and if the current user is the sender.
+        /// </summary>
+        /// <param name="messageId">The ID of the message to delete.</param>
+        /// <param name="currentUserId">The ID of the current authenticated user.</param>
+        /// <returns>An <see cref="ApiResponse{T}"/> indicating the result of the delete operation.</returns>
+        public async Task<ApiResponse<Message>> DeleteMessageAsync(int messageId, string currentUserId)
+        {
+            var message = await _context.Messages.FirstOrDefaultAsync(m => m.Id == messageId);
+
+            if (message == null)
+            {
+                return new ApiResponse<Message>
+                {
+                    Message = "Message not found",
+                    Data = null,
+                    StatusCode = 404
+                };
+            }
+
+            // Check if the user is the sender of the message
+            if (message.SenderId != currentUserId)
+            {
+                return new ApiResponse<Message>
+                {
+                    Message = "Unauthorized access",
+                    Data = null,
+                    StatusCode = 401
+                };
+            }
+
+            _context.Messages.Remove(message);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<Message>
+            {
+                Message = "Message deleted successfully",
+                Data = null,
+                StatusCode = 200
+            };
+        }
+
     }
 }

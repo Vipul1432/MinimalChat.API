@@ -126,5 +126,42 @@ namespace MinimalChat.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a message with the specified ID.
+        /// </summary>
+        /// <param name="messageId">The ID of the message to delete.</param>
+        /// <returns>
+        /// 200 OK if the message is deleted successfully.
+        /// 401 Unauthorized if the user is not authorized to delete the message.
+        /// 404 Not Found if the message to delete is not found.
+        /// 500 Internal Server Error if an unexpected error occurs.
+        /// </returns>
+        [HttpDelete("messages/{messageId}")]
+        public async Task<IActionResult> DeleteMessage(int messageId)
+        {
+            try
+            {
+                // Get the current user's ID from the JWT token
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                // Delete the message in the repository
+                var deleted = await _messageRepository.DeleteMessageAsync(messageId, currentUserId!);
+
+                return StatusCode(deleted.StatusCode, new ApiResponse<Message>
+                {
+                    Message = deleted.Message,
+                    Data = null,
+                    StatusCode = deleted.StatusCode
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<Message>
+                {
+                    Message = ex.Message,
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
+        }
     }
 }
