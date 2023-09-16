@@ -1,4 +1,5 @@
-﻿using MinimalChat.Domain.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
 using System;
@@ -27,6 +28,20 @@ namespace MinmalChat.Data.Repository
         {
             _context.RequestLogs.Add(requestLog);
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Retrieves a collection of log entries within a specified time range.
+        /// </summary>
+        /// <param name="startTime">The start time for log entries retrieval.</param>
+        /// <param name="endTime">The end time for log entries retrieval.</param>
+        /// <returns>
+        /// A collection of log entries that fall within the specified time range.
+        /// </returns>
+        public async Task<IEnumerable<RequestLog>> GetLogsAsync(DateTime startTime, DateTime endTime)
+        {
+            // Retrieve logs within the specified time range
+            return await _context.RequestLogs.Where(log => log.RequestTimestamp >= startTime && log.RequestTimestamp <= endTime).ToListAsync();
         }
     }
 }
