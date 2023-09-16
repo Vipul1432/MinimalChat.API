@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Helpers;

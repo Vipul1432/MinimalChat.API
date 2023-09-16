@@ -1,11 +1,8 @@
-﻿using MinimalChat.Domain.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MinmalChat.Data.Helpers;
 
 namespace MinmalChat.Data.Repository
 {
@@ -28,6 +25,54 @@ namespace MinmalChat.Data.Repository
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        /// <summary>
+        /// Edits a message with the specified ID asynchronously.
+        /// </summary>
+        /// <param name="messageId">The ID of the message to edit.</param>
+        /// <param name="updatedContent">The updated content for the message.</param>
+        /// <param name="currentUserId">The ID of the current user editing the message.</param>
+        /// <returns>
+        /// A task representing the operation, returning an ApiResponse containing the result:
+        /// - Message edited successfully with a status code of 200 if successful.
+        /// - Message not found with a status code of 404 if the message to edit is not found.
+        /// - Unauthorized access with a status code of 401 if the user is not authorized to edit the message.
+        /// </returns>
+        public async Task<ApiResponse<Message>> EditMessageAsync(int messageId, string updatedContent, string currentUserId)
+        {
+            var message = await _context.Messages.FirstOrDefaultAsync(m => m.Id == messageId);
+
+            if (message == null)
+            {
+                return new ApiResponse<Message>
+                {
+                    Message = "Message not found.",
+                    Data = null,
+                    StatusCode = 404
+                };
+            }
+
+            // Check if the user is the sender of the message
+            if (message.SenderId != currentUserId)
+            {
+                return new ApiResponse<Message>
+                {
+                    Message = "Unauthorized access.",
+                    Data = null,
+                    StatusCode = 401
+                };
+            }
+
+            message.Content = updatedContent;
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<Message>
+            {
+                Message = "Message edited successfully",
+                Data = null,
+                StatusCode = 200
+            };
         }
     }
 }
