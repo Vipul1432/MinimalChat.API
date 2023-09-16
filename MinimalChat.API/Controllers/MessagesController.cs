@@ -76,5 +76,55 @@ namespace MinimalChat.API.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Edits a message with the specified ID.
+        /// </summary>
+        /// <param name="messageId">The ID of the message to edit.</param>
+        /// <param name="model">The model containing the updated message content.</param>
+        /// <returns>
+        /// 200 OK if the message is edited successfully.
+        /// 400 Bad Request if validation errors occur.
+        /// 401 Unauthorized if the user is not authorized to edit the message.
+        /// 404 Not Found if the message to edit is not found.
+        /// 500 Internal Server Error if an unexpected error occurs.
+        /// </returns>
+        [HttpPut("messages/{messageId}")]
+        public async Task<IActionResult> EditMessage(int messageId, [FromBody] EditMessageDto model)
+        {
+            try
+            {
+                if(!ModelState.IsValid)
+                {
+                    return BadRequest(new ApiResponse<Message>
+                    {
+                        Message = "Message editing failed due to validation errors.",
+                        Data = null,
+                        StatusCode = 404
+                    });
+                }
+                // Get the current user's ID from the JWT token
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                // Edit the message in the repository
+                var edited = await _messageRepository.EditMessageAsync(messageId, model.Content, currentUserId!);
+
+                return StatusCode(edited.StatusCode, new ApiResponse<Message>
+                {
+                    Message = edited.Message,
+                    Data = null,
+                    StatusCode = edited.StatusCode
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<Message>
+                {
+                    Message = ex.Message,
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
+        }
+
     }
 }
