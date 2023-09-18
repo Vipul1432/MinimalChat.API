@@ -61,7 +61,7 @@ namespace MinimalChat.API.Controllers
 
                 var result = await _messageRepository.SendMessageAsync(message);
 
-                return Ok(new ApiResponse<Message>
+                return Ok(new ApiResponse<GetMessagesDto>
                 {
                     Message = "Message sent successfully",
                     Data = null,
@@ -70,7 +70,7 @@ namespace MinimalChat.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<Message>
+                return StatusCode(500, new ApiResponse<GetMessagesDto>
                 {
                     Message = ex.Message,
                     Data = null,
@@ -98,7 +98,7 @@ namespace MinimalChat.API.Controllers
             {
                 if(!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<Message>
+                    return BadRequest(new ApiResponse<GetMessagesDto>
                     {
                         Message = "Message editing failed due to validation errors.",
                         Data = null,
@@ -110,7 +110,7 @@ namespace MinimalChat.API.Controllers
                 // Edit the message in the repository
                 var edited = await _messageRepository.EditMessageAsync(messageId, model.Content, currentUserId!);
 
-                return StatusCode(edited.StatusCode, new ApiResponse<Message>
+                return StatusCode(edited.StatusCode, new ApiResponse<GetMessagesDto>
                 {
                     Message = edited.Message,
                     Data = null,
@@ -119,7 +119,7 @@ namespace MinimalChat.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<Message>
+                return StatusCode(500, new ApiResponse<GetMessagesDto>
                 {
                     Message = ex.Message,
                     Data = null,
@@ -148,7 +148,7 @@ namespace MinimalChat.API.Controllers
                 // Delete the message in the repository
                 var deleted = await _messageRepository.DeleteMessageAsync(messageId, currentUserId!);
 
-                return StatusCode(deleted.StatusCode, new ApiResponse<Message>
+                return StatusCode(deleted.StatusCode, new ApiResponse<GetMessagesDto>
                 {
                     Message = deleted.Message,
                     Data = null,
@@ -157,7 +157,7 @@ namespace MinimalChat.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<Message>
+                return StatusCode(500, new ApiResponse<GetMessagesDto>
                 {
                     Message = ex.Message,
                     Data = null,
@@ -184,7 +184,7 @@ namespace MinimalChat.API.Controllers
                 // check the model Validations
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<Message>
+                    return BadRequest(new ApiResponse<GetMessagesDto>
                     {
                         Message = "Invalid request parameters.",
                         Data = null,
@@ -197,7 +197,7 @@ namespace MinimalChat.API.Controllers
 
                 if (string.IsNullOrEmpty(currentUserId))
                 {
-                    return Unauthorized(new ApiResponse<Message>
+                    return Unauthorized(new ApiResponse<GetMessagesDto>
                     {
                         Message = "Unauthorized access",
                         Data = null,
@@ -209,7 +209,7 @@ namespace MinimalChat.API.Controllers
                 var receiverUserId = await _userService.GetUserByIdAsync(queryParameters.UserId.ToString());
                 if (!receiverUserId)
                 {
-                    return BadRequest(new ApiResponse<Message>
+                    return BadRequest(new ApiResponse<GetMessagesDto>
                     {
                         Message = "User not found.",
                         Data = null,
@@ -222,7 +222,7 @@ namespace MinimalChat.API.Controllers
 
                 if (messages == null || messages.Count == 0)
                 {
-                    return BadRequest(new ApiResponse<Message>
+                    return BadRequest(new ApiResponse<GetMessagesDto>
                     {
                         Message = "Conversation not found.",
                         Data = null,
@@ -230,7 +230,7 @@ namespace MinimalChat.API.Controllers
                     });
                 }
                 // Map messages
-                var messageDtos = messages.Select(message => new Message
+                var messageDtos = messages.Select(message => new GetMessagesDto
                 {
                     Id = message.Id,
                     SenderId = message.SenderId,
@@ -239,7 +239,7 @@ namespace MinimalChat.API.Controllers
                     Timestamp = message.Timestamp
                 }).ToList();
 
-                return Ok(new ApiResponse<List<Message>>
+                return Ok(new ApiResponse<List<GetMessagesDto>>
                 {
                     Message = "Conversation history retrieved successfully",
                     Data = messageDtos,
@@ -248,7 +248,7 @@ namespace MinimalChat.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<Message>
+                return StatusCode(500, new ApiResponse<GetMessagesDto>
                 {
                     Message = ex.Message,
                     Data = null,

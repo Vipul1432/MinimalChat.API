@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using MinimalChat.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -12,6 +13,11 @@ namespace MinimalChat.Domain.Helpers
     {
         [Required]
         public string Name { get; set; }
+        // Navigation property to represent the messages sent by this user
+        public ICollection<Message> SentMessages { get; set; }
+
+        // Navigation property to represent the messages received by this user
+        public ICollection<Message> ReceivedMessages { get; set; }
     }
 
 }
