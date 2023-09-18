@@ -40,9 +40,9 @@ namespace MinimalChat.API.Middleware
                 // Log the request details
                 var requestLog = new RequestLog
                 {
-                    IpAddress = context.Connection.RemoteIpAddress?.ToString(),
+                    IpAddress = context.Connection.RemoteIpAddress?.ToString()!,
                     RequestTimestamp = DateTime.Now,
-                    Username = context.User.Identity.IsAuthenticated ? context.User.Identity.Name : string.Empty, // Fetch username from auth token
+                    Username = context.User.Identity!.IsAuthenticated ? context.User.Identity.Name! : string.Empty, // Fetch username from auth token
                     RequestBody = requestBody,
                 };
 
