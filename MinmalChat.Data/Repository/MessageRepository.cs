@@ -133,6 +133,14 @@ namespace MinmalChat.Data.Repository
                                             (m.SenderId == queryParameters.UserId.ToString() && m.ReceiverId == currentUserId))
                                          .Where(m => m.Timestamp <= queryParameters.Before);
 
+            query = query.OrderByDescending(m => m.Timestamp);
+
+            // Limit the number of messages retrieved based on the specified count
+            if (queryParameters.Count > 0)
+            {
+                query = query.Take(queryParameters.Count);
+            }
+
             // Sort the messages based on the specified sort order
             if (queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc)
             {
@@ -141,12 +149,6 @@ namespace MinmalChat.Data.Repository
             else
             {
                 query = query.OrderByDescending(m => m.Timestamp);
-            }
-
-            // Limit the number of messages retrieved based on the specified count
-            if (queryParameters.Count > 0)
-            {
-                query = query.Take(queryParameters.Count);
             }
 
             // Execute the query and return the conversation history

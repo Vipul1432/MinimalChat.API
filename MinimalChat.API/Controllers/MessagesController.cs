@@ -222,7 +222,7 @@ namespace MinimalChat.API.Controllers
 
                 if (messages == null || messages.Count == 0)
                 {
-                    return BadRequest(new ApiResponse<GetMessagesDto>
+                    return Ok(new ApiResponse<GetMessagesDto>
                     {
                         Message = "Conversation not found.",
                         Data = null,

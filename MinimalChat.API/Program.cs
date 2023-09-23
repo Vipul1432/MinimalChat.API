@@ -76,6 +76,14 @@ namespace MinimalChat.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Configure CORS (Cross-Origin Resource Sharing) policy
+            // Allow requests from any origin ( "*" means all origins)
+            // Allow any HTTP method (GET, POST, PUT, DELETE, etc.)
+            // Allow any HTTP headers in the request
+            builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
+            {
+                build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+            }));
 
             // Define and configure Swagger documentation settings for API.
             builder.Services.AddSwaggerGen(option =>
@@ -116,7 +124,7 @@ namespace MinimalChat.API
             }
           
             app.UseHttpsRedirection();
-
+            app.UseCors("corspolicy");
             app.UseAuthentication();
             app.UseAuthorization();
 

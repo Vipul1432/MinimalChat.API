@@ -42,7 +42,7 @@ namespace MinimalChat.API.Controllers
 
             var registrationResult = await _userService.RegisterAsync(model);
 
-            return StatusCode(registrationResult.StatusCode, registrationResult);
+            return Ok(registrationResult);
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace MinimalChat.API.Controllers
 
             if (user == null)
             {
-                return Unauthorized(new ApiResponse<LoginDto>
+                return Ok(new ApiResponse<LoginDto>
                 {
                     Message = "Login failed due to incorrect credentials.",
                     Data = null,
@@ -81,7 +81,7 @@ namespace MinimalChat.API.Controllers
 
             if (!await _userService.ValidatePasswordAsync(user, model.Password))
             {
-                return Unauthorized(new ApiResponse<LoginDto>
+                return Ok(new ApiResponse<LoginDto>
                 {
                     Message = "Login failed due to incorrect credentials.",
                     Data = null,
