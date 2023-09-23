@@ -32,7 +32,7 @@ namespace MinimalChat.API.Controllers
         public async Task<IActionResult> GetLogs([FromQuery] DateTime? startTime = null, [FromQuery] DateTime? endTime = null)
         {
             try
-            {
+           {
                 // Validate and set default values for start and end time if not provided
                 if (!startTime.HasValue)
                 {
