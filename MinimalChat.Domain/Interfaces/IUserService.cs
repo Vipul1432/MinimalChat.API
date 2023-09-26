@@ -58,5 +58,6 @@ namespace MinimalChat.Domain.Interfaces
         /// <param name="userId">The ID of the user to check for existence.</param>
         /// <returns>True if the user exists; otherwise, false.</returns>
         Task<bool> GetUserByIdAsync(string userId);
+        Task<MinimalChatUser?> GetUserByNameAsync(string username);
     }
 }

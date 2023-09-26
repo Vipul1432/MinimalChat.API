@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
+using MinmalChat.Data.Services;
 
 namespace MinimalChat.API.Controllers
 {
@@ -12,11 +13,11 @@ namespace MinimalChat.API.Controllers
     [Authorize] 
     public class LogsController : ControllerBase
     {
-        private readonly IRequestLogRepository _requestLogRepository;
+        private readonly ILogService _logService;
 
-        public LogsController(IRequestLogRepository requestLogRepository)
+        public LogsController(ILogService logService)
         {
-            _requestLogRepository = requestLogRepository;
+            _logService = logService;
         }
         /// <summary>
         /// Retrieves logs within a specified time range.
@@ -45,7 +46,7 @@ namespace MinimalChat.API.Controllers
                 }
 
                 // Retrieve logs based on the provided time range
-                IEnumerable<RequestLog> logs = await _requestLogRepository.GetLogsAsync(startTime.Value, endTime.Value);
+                IEnumerable<RequestLog> logs = await _logService.GetLogsAsync(startTime.Value, endTime.Value);
 
                 if (logs.Any())
                 {

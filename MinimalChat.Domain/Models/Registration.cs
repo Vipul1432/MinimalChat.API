@@ -17,8 +17,7 @@ namespace MinimalChat.Domain.Models
         [Display(Name = "Full Name")]
         public string Name { get; set; }
 
-        [Required]
         [DataType(DataType.Password)]
-        public string Password { get; set; }
+        public string? Password { get; set; }
     }
 }

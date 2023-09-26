@@ -28,6 +28,8 @@ namespace MinimalChat.API
                 options.UseSqlServer(builder.Configuration.GetConnectionString("MinimalChatEntities"));
             });
 
+            builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("JWT"));
+
             // For Identity Users
             builder.Services.AddIdentity<MinimalChatUser, IdentityRole>(options =>
             {
@@ -67,8 +69,9 @@ namespace MinimalChat.API
             // This allows for the use of dependency injection to provide instances of these repositories
             // to various parts of the application, ensuring data access is scoped to the current request.
             builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IMessageRepository, MessageRepository>();
-            builder.Services.AddScoped<IRequestLogRepository, RequestLogRepository>();
+            builder.Services.AddScoped<IMessageService, MessageService>();
+            builder.Services.AddScoped<ILogService, LogService>();
+            builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 
             builder.Services.AddControllers();
@@ -80,10 +83,23 @@ namespace MinimalChat.API
             // Allow requests from any origin ( "*" means all origins)
             // Allow any HTTP method (GET, POST, PUT, DELETE, etc.)
             // Allow any HTTP headers in the request
-            builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
+            //builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
+            //{
+            //    build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+            //}));
+
+            builder.Services.AddCors(options =>
             {
-                build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
-            }));
+                options.AddPolicy("AllowOrigin",
+                    builder =>
+                    {
+                        builder
+                            .WithOrigins("http://localhost:4200") // Allow requests from your Angular app's URL
+                            .AllowAnyMethod()
+                            .AllowAnyHeader()
+                            .AllowCredentials(); // Allow credentials (cookies, Authorization header)
+                    });
+            });
 
             // Define and configure Swagger documentation settings for API.
             builder.Services.AddSwaggerGen(option =>
@@ -124,7 +140,7 @@ namespace MinimalChat.API
             }
           
             app.UseHttpsRedirection();
-            app.UseCors("corspolicy");
+            app.UseCors("AllowOrigin");
             app.UseAuthentication();
             app.UseAuthorization();
 

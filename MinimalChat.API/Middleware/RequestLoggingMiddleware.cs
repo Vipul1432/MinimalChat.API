@@ -17,7 +17,7 @@ namespace MinimalChat.API.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, IRequestLogRepository _logRepository)
+        public async Task InvokeAsync(HttpContext context, ILogService _logService)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace MinimalChat.API.Middleware
                 };
 
                 // log this information in database using log Repository
-                await _logRepository.AddAsync(requestLog);
+                await _logService.AddAsync(requestLog);
 
                 // Continue processing the request
                 await _next(context);

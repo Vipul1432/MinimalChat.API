@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Google.Apis.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
@@ -13,9 +15,11 @@ namespace MinimalChat.API.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
-        public UsersController(IUserService userService)
+        private readonly AppSettings _applicationSettings;
+        public UsersController(IUserService userService, IOptions<AppSettings> applicationSettings)
         {
             _userService = userService;
+            _applicationSettings = applicationSettings.Value;
         }
 
         /// <summary>
@@ -71,7 +75,7 @@ namespace MinimalChat.API.Controllers
 
             if (user == null)
             {
-                return Ok(new ApiResponse<LoginDto>
+                return Unauthorized(new ApiResponse<LoginDto>
                 {
                     Message = "Login failed due to incorrect credentials.",
                     Data = null,
@@ -81,7 +85,7 @@ namespace MinimalChat.API.Controllers
 
             if (!await _userService.ValidatePasswordAsync(user, model.Password))
             {
-                return Ok(new ApiResponse<LoginDto>
+                return BadRequest(new ApiResponse<LoginDto>
                 {
                     Message = "Login failed due to incorrect credentials.",
                     Data = null,
@@ -104,15 +108,71 @@ namespace MinimalChat.API.Controllers
             });
         }
 
-        /// <summary>
-        /// Retrieves a list of users, excluding the currently logged-in user.
-        /// </summary>
-        /// <returns>An IActionResult containing a list of UserDto objects.</returns>
-        /// <remarks>
-        /// This endpoint retrieves a list of all users registered in the system, excluding the
-        /// currently authenticated user. It skips the current user while constructing the user list.
-        /// </remarks>
-        [HttpGet("users")]
+        [HttpPost("googleLogin")]
+        public async Task<IActionResult> LoginWithGoogle([FromBody] string credential)
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings()
+            {
+                Audience = new List<string> { this._applicationSettings.GoogleClientId }
+            };
+
+            try
+            {
+                var payload = await GoogleJsonWebSignature.ValidateAsync(credential, settings);
+
+                var user = await _userService.GetUserByNameAsync(payload.Email);
+
+                if (user != null)
+                {
+                    var token = _userService.GenerateJwtToken(user);
+
+                    return Ok(new ApiResponse<string>
+                    {
+                        Message = "Login successful",
+                        Data = token,
+                        StatusCode = 200 // Success
+                    });
+                }
+                else
+                {
+                    Registration googleUser = new Registration()
+                    {
+                        Email = payload.Email,
+                        Name = payload.Name,
+                        Password = null
+                    };
+                    var registrationResult = await _userService.RegisterAsync(googleUser);
+                    var registedUser = await _userService.GetUserByNameAsync(googleUser.Email);
+                    var token = _userService.GenerateJwtToken(registedUser);
+                    return Ok(new ApiResponse<string>
+                    {
+                        Message = "Login successful",
+                        Data = token,
+                        StatusCode = 200 // Success
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle any exception that occurs during Google validation
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    Message = "Error validating Google credentials",
+                    StatusCode = 500 // Internal Server Error
+                });
+            }
+        }
+
+
+/// <summary>
+/// Retrieves a list of users, excluding the currently logged-in user.
+/// </summary>
+/// <returns>An IActionResult containing a list of UserDto objects.</returns>
+/// <remarks>
+/// This endpoint retrieves a list of all users registered in the system, excluding the
+/// currently authenticated user. It skips the current user while constructing the user list.
+/// </remarks>
+[HttpGet("users")]
         [Authorize]
         public async Task<IActionResult> GetAllUsers()
         {
