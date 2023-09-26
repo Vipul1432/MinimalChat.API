@@ -17,12 +17,12 @@ namespace MinimalChat.API.Controllers
     [Authorize]
     public class MessagesController : ControllerBase
     {
-        private readonly IMessageRepository _messageRepository;
+        private readonly IMessageService _messageService;
         private readonly IUserService _userService;
 
-        public MessagesController(IMessageRepository messageRepository, IUserService userService)
+        public MessagesController(IMessageService messageService, IUserService userService)
         {
-            _messageRepository = messageRepository;
+            _messageService = messageService;
             _userService = userService;
         }
 
@@ -59,7 +59,7 @@ namespace MinimalChat.API.Controllers
                     Timestamp = DateTime.Now
                 };
 
-                var result = await _messageRepository.SendMessageAsync(message);
+                var result = await _messageService.SendMessageAsync(message);
 
                 return Ok(new ApiResponse<GetMessagesDto>
                 {
@@ -108,7 +108,7 @@ namespace MinimalChat.API.Controllers
                 // Get the current user's ID from the JWT token
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 // Edit the message in the repository
-                var edited = await _messageRepository.EditMessageAsync(messageId, model.Content, currentUserId!);
+                var edited = await _messageService.EditMessageAsync(messageId, model.Content, currentUserId!);
 
                 return StatusCode(edited.StatusCode, new ApiResponse<GetMessagesDto>
                 {
@@ -146,7 +146,7 @@ namespace MinimalChat.API.Controllers
                 // Get the current user's ID from the JWT token
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 // Delete the message in the repository
-                var deleted = await _messageRepository.DeleteMessageAsync(messageId, currentUserId!);
+                var deleted = await _messageService.DeleteMessageAsync(messageId, currentUserId!);
 
                 return StatusCode(deleted.StatusCode, new ApiResponse<GetMessagesDto>
                 {
@@ -218,13 +218,13 @@ namespace MinimalChat.API.Controllers
                 }
 
                 // Retrieve the conversation history
-                var messages = await _messageRepository.GetConversationHistoryAsync(queryParameters, currentUserId);
+                var messages = await _messageService.GetConversationHistoryAsync(queryParameters, currentUserId);
 
-                if (messages == null || messages.Count == 0)
+                if (messages == null || messages.Count <= 0)
                 {
-                    return Ok(new ApiResponse<GetMessagesDto>
+                    return BadRequest(new ApiResponse<GetMessagesDto>
                     {
-                        Message = "Conversation not found.",
+                        Message = "No more conversation found.",
                         Data = null,
                         StatusCode = 400
                     });

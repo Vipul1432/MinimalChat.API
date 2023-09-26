@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Google.Apis.Auth;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -51,8 +52,15 @@ namespace MinmalChat.Data.Services
                 UserName = model.Email,
                 Email = model.Email,
             };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
+            IdentityResult result;
+            if(model.Password == null)
+            {
+                result = await _userManager.CreateAsync(user);
+            }
+            else
+            {
+                result = await _userManager.CreateAsync(user, model.Password);
+            }
 
             if (result.Succeeded)
             {
@@ -149,6 +157,16 @@ namespace MinmalChat.Data.Services
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Retrieves a user by their username asynchronously.
+        /// </summary>
+        /// <param name="username">The username (email address) of the user to retrieve.</param>
+        /// <returns>The user object if found; otherwise, null.</returns>
+        public async Task<MinimalChatUser?> GetUserByNameAsync(string username)
+        {
+            return await _userManager.FindByEmailAsync(username);
         }
     }
 }
