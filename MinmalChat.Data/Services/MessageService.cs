@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
@@ -150,6 +151,33 @@ namespace MinmalChat.Data.Services
 
             // Execute the query and return the conversation history
             return await query.ToListAsync();
+        }
+
+        /// <summary>
+        /// Searches conversations for messages containing a provided keyword.
+        /// </summary>
+        /// <param name="query">The keyword to search for within conversations.</param>
+        /// <param name="receiverId">The ID of the receiver user for filtering conversations.</param>
+        /// <param name="currentUserId">The ID of the current user initiating the search.</param>
+        /// <returns>
+        /// A list of messages matching the keyword within conversations.
+        /// </returns>
+        public async Task<List<Message>> SearchConversationsAsync(string query, string receiverId, string currentUserId)
+        {
+            var filteredConversations = await _context.Messages
+                                         .Where(m => (m.SenderId == currentUserId && m.ReceiverId == receiverId) || (m.SenderId == receiverId && m.ReceiverId == currentUserId))
+                                         .Where(m => m.Content.Contains(query))
+                                         .Select(m => new Message
+                                         {
+                                             Id = m.Id,
+                                             SenderId = m.SenderId,
+                                             ReceiverId = m.ReceiverId,
+                                             Content = m.Content,
+                                             Timestamp = m.Timestamp
+                                         })
+                                         .ToListAsync();
+
+            return filteredConversations;
         }
     }
 
