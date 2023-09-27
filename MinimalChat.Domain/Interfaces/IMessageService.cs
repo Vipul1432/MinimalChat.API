@@ -42,5 +42,16 @@ namespace MinimalChat.Domain.Interfaces
         /// <param name="currentUserId">The ID of the current user.</param>
         /// <returns>A list of messages representing the conversation history.</returns>
         Task<List<Message?>> GetConversationHistoryAsync(ConversationHistoryDto queryParameters, string currentUserId);
+
+        /// <summary>
+        /// Searches conversations for messages containing a provided keyword.
+        /// </summary>
+        /// <param name="query">The keyword to search for within conversations.</param>
+        /// <param name="receiverId">The ID of the receiver user for filtering conversations.</param>
+        /// <param name="currentUserId">The ID of the current user initiating the search.</param>
+        /// <returns>
+        /// A list of messages matching the keyword within conversations.
+        /// </returns>
+        Task<List<Message>> SearchConversationsAsync(string query, string receiverId, string currentUserId);
     }
 }

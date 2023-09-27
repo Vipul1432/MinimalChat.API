@@ -118,6 +118,9 @@ namespace MinimalChat.API.Controllers
                 // Edit the message in the repository
                 var edited = await _messageService.EditMessageAsync(messageId, model.Content, currentUserId!);
 
+                // Broadcast the message via SignalR
+                await _hubContext.Clients.All.SendAsync("ReceiveMessage", currentUserId, model.Content);
+
                 return StatusCode(edited.StatusCode, new ApiResponse<GetMessagesDto>
                 {
                     Message = edited.Message,
@@ -155,6 +158,9 @@ namespace MinimalChat.API.Controllers
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 // Delete the message in the repository
                 var deleted = await _messageService.DeleteMessageAsync(messageId, currentUserId!);
+
+                // Broadcast the message via SignalR
+                await _hubContext.Clients.All.SendAsync("ReceiveMessage", messageId, currentUserId);
 
                 return StatusCode(deleted.StatusCode, new ApiResponse<GetMessagesDto>
                 {
@@ -257,6 +263,82 @@ namespace MinimalChat.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new ApiResponse<GetMessagesDto>
+                {
+                    Message = ex.Message,
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
+        }
+
+        /// <summary>
+        /// Searches conversations for messages containing a provided keyword.
+        /// </summary>
+        /// <param name="query">The keyword to search for within conversations.</param>
+        /// <param name="receiverId">The ID of the receiver user for filtering conversations.</param>
+        /// <returns>
+        /// An IActionResult representing the result of the conversation search operation.
+        /// If successful, returns a list of messages matching the keyword.
+        /// </returns>
+        [HttpGet("conversation/search")]
+        public async Task<IActionResult> SearchConversations([FromQuery] string query, [FromQuery] string receiverId)
+        {
+            try
+            {
+                // Get the current user's ID from the JWT token
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Unauthorized(new ApiResponse<Message>
+                    {
+                        Message = "Unauthorized access",
+                        Data = null,
+                        StatusCode = 401
+                    });
+                }
+
+                // Check if the receiver user exists
+                var receiverUser = await _userService.GetUserByIdAsync(receiverId);
+
+                if (receiverUser == null)
+                {
+                    return BadRequest(new ApiResponse<Message>
+                    {
+                        Message = "Receiver user not found.",
+                        Data = null,
+                        StatusCode = 400
+                    });
+                }
+
+                // Perform the conversation search
+                var conversations = await _messageService.SearchConversationsAsync(query, currentUserId, receiverId);
+
+                if (conversations == null || conversations.Count <= 0)
+                {
+                    return BadRequest(new ApiResponse<Message>
+                    {
+                        Message = "No message is found with this keyword",
+                        Data = null,
+                        StatusCode = 200
+                    });
+                }
+
+                return Ok(new
+                {
+                    messages = conversations.Select(m => new
+                    {
+                        id = m.Id,
+                        senderId = m.SenderId,
+                        receiverId = m.ReceiverId,
+                        content = m.Content,
+                        timestamp = m.Timestamp
+                    })
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<Message>
                 {
                     Message = ex.Message,
                     Data = null,
