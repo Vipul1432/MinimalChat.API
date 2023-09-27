@@ -108,6 +108,17 @@ namespace MinimalChat.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Logs in a user using Google credentials provided as a JSON Web Token (JWT).
+        /// </summary>
+        /// <param name="credential">The Google credential as a JWT string.</param>
+        /// <returns>
+        /// An IActionResult representing the login result, including a JWT token, message, and status code.
+        /// </returns>
+        /// <remarks>
+        /// This action method validates the Google JWT credential, checks if the user exists,
+        /// and either logs in the user or registers a new user if not found.
+        /// </remarks>
         [HttpPost("googleLogin")]
         public async Task<IActionResult> LoginWithGoogle([FromBody] string credential)
         {
@@ -163,16 +174,15 @@ namespace MinimalChat.API.Controllers
             }
         }
 
-
-/// <summary>
-/// Retrieves a list of users, excluding the currently logged-in user.
-/// </summary>
-/// <returns>An IActionResult containing a list of UserDto objects.</returns>
-/// <remarks>
-/// This endpoint retrieves a list of all users registered in the system, excluding the
-/// currently authenticated user. It skips the current user while constructing the user list.
-/// </remarks>
-[HttpGet("users")]
+        /// <summary>
+        /// Retrieves a list of users, excluding the currently logged-in user.
+        /// </summary>
+        /// <returns>An IActionResult containing a list of UserDto objects.</returns>
+        /// <remarks>
+        /// This endpoint retrieves a list of all users registered in the system, excluding the
+        /// currently authenticated user. It skips the current user while constructing the user list.
+        /// </remarks>
+        [HttpGet("users")]
         [Authorize]
         public async Task<IActionResult> GetAllUsers()
         {

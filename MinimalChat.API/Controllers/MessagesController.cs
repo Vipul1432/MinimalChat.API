@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.SqlServer.Server;
+using MinimalChat.API.Hubs;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
@@ -18,12 +20,14 @@ namespace MinimalChat.API.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly IMessageService _messageService;
+        private readonly IHubContext<ChatHub> _hubContext;
         private readonly IUserService _userService;
 
-        public MessagesController(IMessageService messageService, IUserService userService)
+        public MessagesController(IMessageService messageService, IUserService userService, IHubContext<ChatHub> hubContext)
         {
             _messageService = messageService;
             _userService = userService;
+            _hubContext = hubContext;
         }
 
         /// <summary>
@@ -60,6 +64,10 @@ namespace MinimalChat.API.Controllers
                 };
 
                 var result = await _messageService.SendMessageAsync(message);
+
+                // Broadcast the message via SignalR
+                await _hubContext.Clients.All.SendAsync("ReceiveMessage", message.SenderId, message.Content);
+
 
                 return Ok(new ApiResponse<GetMessagesDto>
                 {
@@ -222,7 +230,7 @@ namespace MinimalChat.API.Controllers
 
                 if (messages == null || messages.Count <= 0)
                 {
-                    return BadRequest(new ApiResponse<GetMessagesDto>
+                    return Ok(new ApiResponse<GetMessagesDto>
                     {
                         Message = "No more conversation found.",
                         Data = null,

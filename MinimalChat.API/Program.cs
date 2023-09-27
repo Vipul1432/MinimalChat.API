@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MinimalChat.API.Hubs;
 using MinimalChat.API.Middleware;
 using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
@@ -73,6 +74,8 @@ namespace MinimalChat.API
             builder.Services.AddScoped<ILogService, LogService>();
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
+            // Add SignalR Service
+            builder.Services.AddSignalR();
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -80,14 +83,9 @@ namespace MinimalChat.API
             builder.Services.AddSwaggerGen();
 
             // Configure CORS (Cross-Origin Resource Sharing) policy
-            // Allow requests from any origin ( "*" means all origins)
+            // Allow requests from url origin ( "http://localhost:4200")
             // Allow any HTTP method (GET, POST, PUT, DELETE, etc.)
-            // Allow any HTTP headers in the request
-            //builder.Services.AddCors(p => p.AddPolicy("corspolicy", build =>
-            //{
-            //    build.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
-            //}));
-
+            // Allow any HTTP headers in the request            
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowOrigin",
@@ -148,6 +146,9 @@ namespace MinimalChat.API
             app.UseRequestLoggingMiddleware();
 
             app.MapControllers();
+
+            // chatHub for realtime chat
+            app.MapHub<ChatHub>("/chatHub");
 
             app.Run();
         }
