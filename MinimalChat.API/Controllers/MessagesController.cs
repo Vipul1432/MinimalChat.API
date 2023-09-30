@@ -281,7 +281,7 @@ namespace MinimalChat.API.Controllers
         /// If successful, returns a list of messages matching the keyword.
         /// </returns>
         [HttpGet("conversation/search")]
-        public async Task<IActionResult> SearchConversations([FromQuery] string query, [FromQuery] string receiverId)
+        public async Task<IActionResult> SearchConversations([FromQuery] string query)
         {
             try
             {
@@ -298,21 +298,8 @@ namespace MinimalChat.API.Controllers
                     });
                 }
 
-                // Check if the receiver user exists
-                var receiverUser = await _userService.GetUserByIdAsync(receiverId);
-
-                if (receiverUser == null)
-                {
-                    return BadRequest(new ApiResponse<Message>
-                    {
-                        Message = "Receiver user not found.",
-                        Data = null,
-                        StatusCode = 400
-                    });
-                }
-
                 // Perform the conversation search
-                var conversations = await _messageService.SearchConversationsAsync(query, currentUserId, receiverId);
+                var conversations = await _messageService.SearchConversationsAsync(query, currentUserId);
 
                 if (conversations == null || conversations.Count <= 0)
                 {

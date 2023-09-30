@@ -162,10 +162,10 @@ namespace MinmalChat.Data.Services
         /// <returns>
         /// A list of messages matching the keyword within conversations.
         /// </returns>
-        public async Task<List<Message>> SearchConversationsAsync(string query, string receiverId, string currentUserId)
+        public async Task<List<Message>> SearchConversationsAsync(string query, string currentUserId)
         {
             var filteredConversations = await _context.Messages
-                                         .Where(m => (m.SenderId == currentUserId && m.ReceiverId == receiverId) || (m.SenderId == receiverId && m.ReceiverId == currentUserId))
+                                         .Where(m => (m.SenderId == currentUserId) || (m.ReceiverId == currentUserId))
                                          .Where(m => m.Content.Contains(query))
                                          .Select(m => new Message
                                          {
