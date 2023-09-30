@@ -52,6 +52,6 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>
         /// A list of messages matching the keyword within conversations.
         /// </returns>
-        Task<List<Message>> SearchConversationsAsync(string query, string receiverId, string currentUserId);
+        Task<List<Message>> SearchConversationsAsync(string query, string currentUserId);
     }
 }
