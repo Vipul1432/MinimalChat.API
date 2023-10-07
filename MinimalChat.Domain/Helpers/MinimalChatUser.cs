@@ -13,6 +13,10 @@ namespace MinimalChat.Domain.Helpers
     {
         [Required]
         public string Name { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
+
         // Navigation property to represent the messages sent by this user
         public ICollection<Message> SentMessages { get; set; }
 

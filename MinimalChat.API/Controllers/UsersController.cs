@@ -1,11 +1,13 @@
 ﻿using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace MinimalChat.API.Controllers
@@ -61,51 +63,35 @@ namespace MinimalChat.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Login model)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(new ApiResponse<LoginDto>
+                if (!ModelState.IsValid)
                 {
-                    Message = "Login failed due to validation errors.",
-                    Data = null,
-                    StatusCode = 400
+                    return BadRequest(new ApiResponse<LoginDto>
+                    {
+                        Message = "Login failed due to validation errors.",
+                        Data = null,
+                        StatusCode = 400
+                    });
+                }
+
+                var LoginResult = await _userService.LoginAsync(model);
+                return StatusCode(LoginResult.StatusCode, new ApiResponse<LoginDto>
+                {
+                    Message = LoginResult.Message,
+                    Data = LoginResult.Data,
+                    StatusCode = LoginResult.StatusCode
                 });
             }
-
-            var user = await _userService.GetUserByEmailAsync(model.Email);
-
-            if (user == null)
+            catch (Exception ex)
             {
-                return Unauthorized(new ApiResponse<LoginDto>
+                return StatusCode(500, new ApiResponse<LoginDto>
                 {
-                    Message = "Login failed due to incorrect credentials.",
+                    Message = ex.Message,
                     Data = null,
-                    StatusCode = 401
+                    StatusCode = 500
                 });
             }
-
-            if (!await _userService.ValidatePasswordAsync(user, model.Password))
-            {
-                return BadRequest(new ApiResponse<LoginDto>
-                {
-                    Message = "Login failed due to incorrect credentials.",
-                    Data = null,
-                    StatusCode = 401
-                });
-            }
-
-            // Generate the JWT token
-            var token = _userService.GenerateJwtToken(user);
-
-            return Ok(new ApiResponse<LoginDto>
-            {
-                Message = "Login successful",
-                Data = new LoginDto
-                {
-                    Email = model.Email,
-                    JwtToken = token,
-                },
-                StatusCode = 200
-            });
         }
 
         /// <summary>
@@ -131,44 +117,21 @@ namespace MinimalChat.API.Controllers
             {
                 var payload = await GoogleJsonWebSignature.ValidateAsync(credential, settings);
 
-                var user = await _userService.GetUserByNameAsync(payload.Email);
-
-                if (user != null)
+                var GoogleLoginResult = await _userService.GoogleLoginAsync(payload.Email, payload.Name);
+                return StatusCode(GoogleLoginResult.StatusCode, new ApiResponse<LoginDto>
                 {
-                    var token = _userService.GenerateJwtToken(user);
-
-                    return Ok(new ApiResponse<string>
-                    {
-                        Message = "Login successful",
-                        Data = token,
-                        StatusCode = 200 // Success
-                    });
-                }
-                else
-                {
-                    Registration googleUser = new Registration()
-                    {
-                        Email = payload.Email,
-                        Name = payload.Name,
-                        Password = null
-                    };
-                    var registrationResult = await _userService.RegisterAsync(googleUser);
-                    var registedUser = await _userService.GetUserByNameAsync(googleUser.Email);
-                    var token = _userService.GenerateJwtToken(registedUser);
-                    return Ok(new ApiResponse<string>
-                    {
-                        Message = "Login successful",
-                        Data = token,
-                        StatusCode = 200 // Success
-                    });
-                }
+                    Message = GoogleLoginResult.Message,
+                    Data = GoogleLoginResult.Data,
+                    StatusCode = GoogleLoginResult.StatusCode
+                });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Handle any exception that occurs during Google validation
-                return StatusCode(500, new ApiResponse<string>
+                return StatusCode(500, new ApiResponse<LoginDto>
                 {
                     Message = "Error validating Google credentials",
+                    Data = null,
                     StatusCode = 500 // Internal Server Error
                 });
             }
@@ -223,6 +186,32 @@ namespace MinimalChat.API.Controllers
                     StatusCode = 500
                 });
             }
+        }
+
+        /// <summary>
+        /// Handles the HTTP POST request for refreshing an access token using a valid refresh token.
+        /// </summary>
+        /// <param name="tokenModel">A model containing the refresh token.</param>
+        /// <returns>
+        /// Returns an IActionResult representing the result of the token refresh operation,
+        /// including a new access token if successful or an error message if unsuccessful.
+        /// </returns>
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken(TokenModel tokenModel)
+        
+        {
+            if (tokenModel is null)
+            {
+                return BadRequest("Invalid client request");
+            }
+
+            var RefreshTokenResult = await _userService.GetRefreshTokenAsync(tokenModel);
+            return StatusCode(RefreshTokenResult.StatusCode, new ApiResponse<TokenModel>
+            {
+                Message = RefreshTokenResult.Message,
+                Data = RefreshTokenResult.Data,
+                StatusCode = RefreshTokenResult.StatusCode
+            });
         }
     }
 }
