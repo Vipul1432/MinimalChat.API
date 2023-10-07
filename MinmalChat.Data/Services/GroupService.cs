@@ -115,5 +115,46 @@ namespace MinmalChat.Data.Services
             return "Member Added Successfully!";
         }
 
+        /// <summary>
+        /// Asynchronously removes a member from a specified group.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the target group.</param>
+        /// <param name="currentUserId">The unique identifier of the current user initiating the action.</param>
+        /// <param name="memberId">The unique identifier of the member to be removed from the group.</param>
+        /// <returns>
+        ///   A task representing the asynchronous operation, with a string result indicating the outcome.
+        /// </returns>
+        public async Task<string> RemoveMemberFromGroupAsync(Guid groupId, Guid currentUserId, Guid memberId)
+        {
+            // Check if the group exists
+            var group = await _context.Groups.FirstOrDefaultAsync(grp => grp.Id == groupId);
+            if (group == null)
+            {
+                return "Group not found";
+            }
+
+            var groupMember = await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.UserId == currentUserId.ToString());
+
+            if (groupMember != null && !groupMember.IsAdmin)
+            {
+                return "You are not an admin! You can't remove members!";
+            }
+
+            // Check if the member exists in the group
+            var memberExists = await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.GroupId == groupId && grpmem.UserId == memberId.ToString());
+
+            if (memberExists == null)
+            {
+                return $"Member with ID {memberId} not found in the group";
+            }
+
+            // Remove the member from the group
+            _context.GroupMembers.Remove(memberExists);
+            await _context.SaveChangesAsync();
+
+            return "Member Removed Successfully!";
+        }
+
+
     }
 }

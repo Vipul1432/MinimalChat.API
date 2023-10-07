@@ -115,5 +115,46 @@ namespace MinimalChat.API.Controllers
         }
 
         #endregion Add Members to Group
+
+        #region Remove Member from Group
+
+        /// <summary>
+        /// Handles HTTP POST requests to remove a member from a specified group.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the target group.</param>
+        /// <param name="currentUserId">The unique identifier of the current user initiating the action.</param>
+        /// <param name="memberId">The unique identifier of the member to be removed from the group.</param>
+        /// <returns>
+        ///   200 OK if the member is removed successfully, along with a success message.
+        ///   500 Internal Server Error if an error occurs during the operation, with details in the response.
+        /// </returns>
+        [HttpPost("{groupId}/remove-member")]
+        public async Task<IActionResult> RemoveMemberFromGroup(Guid groupId, [FromQuery] Guid currentUserId, [FromBody] Guid memberId)
+        {
+            try
+            {
+                var result = await _groupService.RemoveMemberFromGroupAsync(groupId, currentUserId, memberId);
+
+                return Ok(new ApiResponse<string>
+                {
+                    Message = result,
+                    Data = null,
+                    StatusCode = 200,
+                });
+            }
+            catch (Exception ex)
+            {
+                var response = new ApiResponse<string>
+                {
+                    Message = "Internal Server Error",
+                    Data = ex.Message,
+                    StatusCode = 500,
+                };
+
+                return StatusCode(500, response);
+            }
+        }
+
+        #endregion Remove Member from Group
     }
 }
