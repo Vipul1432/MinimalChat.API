@@ -74,6 +74,7 @@ namespace MinimalChat.API
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IMessageService, MessageService>();
             builder.Services.AddScoped<ILogService, LogService>();
+            builder.Services.AddScoped<IGroupService, GroupService>();
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
             // Add SignalR Service

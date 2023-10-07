@@ -19,6 +19,8 @@ namespace MinmalChat.Data.Context
 
         public DbSet<Message> Messages { get; set; }
         public DbSet<RequestLog> RequestLogs { get; set; }
+        public DbSet<Group> Groups { get; set; }
+        public DbSet<GroupMember> GroupMembers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -43,6 +45,31 @@ namespace MinmalChat.Data.Context
                 .WithMany(u => u.ReceivedMessages)
                 .HasForeignKey(m => m.ReceiverId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+
+
+            // Configure the primary key for the GroupMember entity. 
+            modelBuilder.Entity<GroupMember>()
+            .HasKey(gm => new { gm.GroupId, gm.UserId });
+
+            // Define the relationship between GroupMember and Group.
+            modelBuilder.Entity<GroupMember>()
+                .HasOne(gm => gm.Group)
+                .WithMany(g => g.Members)
+                .HasForeignKey(gm => gm.GroupId)     
+                .HasPrincipalKey(group => group.Id);
+
+            // Define the relationship between GroupMember and User.
+            modelBuilder.Entity<GroupMember>()
+                .HasOne(gm => gm.User)
+                .WithMany()
+                .HasForeignKey(gm => gm.UserId);
+
+            // Define the relationship between Message and Group.
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Group)
+                .WithMany(g => g.Messages)
+                .HasForeignKey(m => m.GroupId);
         }
     }
 }
