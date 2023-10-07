@@ -9,9 +9,8 @@ namespace MinimalChat.Domain.DTOs
 {
     public class GroupDto
     {
-        public required Guid Id { get; set; }
         public required string Name { get; set; }
-        public List<GroupMember>? Members { get; set; }
+        public List<Guid>? Members { get; set; }
 
     }
 }

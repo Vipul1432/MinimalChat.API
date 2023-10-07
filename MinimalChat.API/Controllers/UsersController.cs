@@ -24,6 +24,8 @@ namespace MinimalChat.API.Controllers
             _applicationSettings = applicationSettings.Value;
         }
 
+        #region User Registration
+
         /// <summary>
         /// Registers a new user with the provided registration information.
         /// </summary>
@@ -50,6 +52,10 @@ namespace MinimalChat.API.Controllers
 
             return Ok(registrationResult);
         }
+
+        #endregion User Registration
+
+        #region User Login
 
         /// <summary>
         /// Handles user login by validating credentials and generating a JWT token upon successful login.
@@ -94,6 +100,10 @@ namespace MinimalChat.API.Controllers
             }
         }
 
+        #endregion User Login
+
+        #region Social Login(Google)
+
         /// <summary>
         /// Logs in a user using Google credentials provided as a JSON Web Token (JWT).
         /// </summary>
@@ -136,6 +146,10 @@ namespace MinimalChat.API.Controllers
                 });
             }
         }
+
+        #endregion Social Login(Google)
+
+        #region Retrieve User List
 
         /// <summary>
         /// Retrieves a list of users, excluding the currently logged-in user.
@@ -188,6 +202,10 @@ namespace MinimalChat.API.Controllers
             }
         }
 
+        #endregion Retrieve User List
+
+        #region Get Refresh Json Web Token 
+
         /// <summary>
         /// Handles the HTTP POST request for refreshing an access token using a valid refresh token.
         /// </summary>
@@ -213,5 +231,7 @@ namespace MinimalChat.API.Controllers
                 StatusCode = RefreshTokenResult.StatusCode
             });
         }
+
+        #endregion Get Refresh Json Web Token
     }
 }

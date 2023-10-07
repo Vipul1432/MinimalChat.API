@@ -19,6 +19,9 @@ namespace MinimalChat.API.Controllers
         {
             _logService = logService;
         }
+
+        #region Retrive logs in specific time range
+
         /// <summary>
         /// Retrieves logs within a specified time range.
         /// </summary>
@@ -79,5 +82,7 @@ namespace MinimalChat.API.Controllers
                 });
             }
         }
+
+        #endregion Retrive logs in specific time range
     }
 }
