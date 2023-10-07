@@ -30,6 +30,8 @@ namespace MinimalChat.API.Controllers
             _hubContext = hubContext;
         }
 
+        #region Send Message to users
+
         /// <summary>
         /// Sends a message from the current user to another user identified by the receiver's ID.
         /// </summary>
@@ -87,6 +89,10 @@ namespace MinimalChat.API.Controllers
             }
         }
 
+        #endregion Send Message to 
+
+        #region Edit message send by current user
+
         /// <summary>
         /// Edits a message with the specified ID.
         /// </summary>
@@ -104,7 +110,7 @@ namespace MinimalChat.API.Controllers
         {
             try
             {
-                if(!ModelState.IsValid)
+                if (!ModelState.IsValid)
                 {
                     return BadRequest(new ApiResponse<GetMessagesDto>
                     {
@@ -138,6 +144,10 @@ namespace MinimalChat.API.Controllers
                 });
             }
         }
+
+        #endregion Edit message send by current user
+
+        #region Delete message send by current user
 
         /// <summary>
         /// Deletes a message with the specified ID.
@@ -179,6 +189,10 @@ namespace MinimalChat.API.Controllers
                 });
             }
         }
+
+        #endregion Delete message send by current user
+
+        #region Retrieve conversation history with specific user
 
         /// <summary>
         /// Retrieves the conversation history between two users based on specified query parameters.
@@ -271,6 +285,10 @@ namespace MinimalChat.API.Controllers
             }
         }
 
+        #endregion Retrieve conversation history with specific user
+
+        #region Retrieve message based on input
+
         /// <summary>
         /// Searches conversations for messages containing a provided keyword.
         /// </summary>
@@ -333,5 +351,7 @@ namespace MinimalChat.API.Controllers
                 });
             }
         }
+
+        #endregion Retrieve message based on input
     }
 }
