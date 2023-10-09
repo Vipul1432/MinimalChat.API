@@ -181,5 +181,47 @@ namespace MinmalChat.Data.Services
             return "Name updated sucessfully!";
         }
 
+        /// <summary>
+        /// Makes a group member an admin of the specified group.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group.</param>
+        /// <param name="memberId">The unique identifier of the member to make an admin.</param>
+        /// <returns>
+        /// A task representing the asynchronous operation.
+        /// The task result is a string message indicating the outcome of the operation.
+        /// If successful, the message will indicate that the member is now an admin.
+        /// If the group or member is not found, appropriate error messages will be returned.
+        /// </returns>
+        public async Task<string> MakeMemberAdminAsync(Guid groupId, Guid memberId)
+        {
+            var group = await _context.Groups.FindAsync(groupId);
+
+            if (group == null)
+            {
+                return "Group not found";
+            }
+
+            var groupMember = await _context.GroupMembers
+                .Where(gm => gm.GroupId == groupId && gm.UserId == memberId.ToString())
+                .FirstOrDefaultAsync();
+
+            if (groupMember == null)
+            {
+                return "Member not found in the group";
+            }
+
+            if (groupMember == null)
+            {
+                return "Member not found in the group";
+            }
+
+            groupMember.IsAdmin = true;
+
+            await _context.SaveChangesAsync();
+
+            return "Member is now an admin";
+        }
+
+
     }
 }
