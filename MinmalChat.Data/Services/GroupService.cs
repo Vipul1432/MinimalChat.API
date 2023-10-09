@@ -155,6 +155,31 @@ namespace MinmalChat.Data.Services
             return "Member Removed Successfully!";
         }
 
+        /// <summary>
+        /// Edits the name of a group with the specified ID.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group to edit.</param>
+        /// <param name="newName">The new name to set for the group.</param>
+        /// <returns>
+        /// A task representing the asynchronous operation.
+        /// The task result is a string message indicating the outcome of the operation.
+        /// If successful, the message will indicate success.
+        /// If the group is not found, the message will indicate that the group was not found.
+        /// </returns>
+        public async Task<string> EditGroupNameAsync(Guid groupId, string newName)
+        {
+            var group = await _context.Groups.FindAsync(groupId);
+
+            if (group == null)
+            {
+                return "Group not found";
+            }
+
+            group.Name = newName;
+            await _context.SaveChangesAsync();
+
+            return "Name updated sucessfully!";
+        }
 
     }
 }
