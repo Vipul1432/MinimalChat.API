@@ -41,5 +41,18 @@ namespace MinimalChat.Domain.Interfaces
         ///   A task representing the asynchronous operation, with a string result indicating the outcome.
         /// </returns>
         Task<string> RemoveMemberFromGroupAsync(Guid groupId, Guid currentUserId, Guid memberId);
+
+        /// <summary>
+        /// Edits the name of a group with the specified ID.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group to edit.</param>
+        /// <param name="newName">The new name to set for the group.</param>
+        /// <returns>
+        /// A task representing the asynchronous operation.
+        /// The task result is a string message indicating the outcome of the operation.
+        /// If successful, the message will indicate success.
+        /// If the group is not found, the message will indicate that the group was not found.
+        /// </returns>
+        Task<string> EditGroupNameAsync(Guid groupId, string newName);
     }
 }

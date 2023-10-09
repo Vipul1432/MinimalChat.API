@@ -156,5 +156,45 @@ namespace MinimalChat.API.Controllers
         }
 
         #endregion Remove Member from Group
+
+        #region Edit Group name
+
+        /// <summary>
+        /// Updates the name of a group with the specified ID.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group to edit.</param>
+        /// <param name="newName">The new name to set for the group.</param>
+        /// <returns>
+        /// An IActionResult representing the result of the operation.
+        /// If successful, returns a 200 OK response with a message indicating success.
+        /// If the group is not found, returns a 404 Not Found response.
+        /// If an error occurs during the operation, returns a 500 Internal Server Error response.
+        /// </returns>
+        [HttpPut("edit-group-name")]
+        public async Task<IActionResult> EditGroupName([FromQuery] Guid groupId, [FromBody] string newName)
+        {
+            try
+            {
+                var updatedGroupResult = await _groupService.EditGroupNameAsync(groupId, newName);
+
+                return Ok(new ApiResponse<string>
+                {
+                    Message = updatedGroupResult,
+                    Data = null,
+                    StatusCode = 200
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    Message = "An error occurred while updating the group name.",
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
+        }
+
+        #endregion Edit Group name
     }
 }
