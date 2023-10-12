@@ -47,23 +47,28 @@ namespace MinimalChat.API.Controllers
 
                 bool IsUserExist = await _userService.GetUserByIdAsync(model.ReceiverId);
 
-                if(!IsUserExist)
+                Message message;
+                if (!IsUserExist)
                 {
-                    return BadRequest(new ApiResponse<LoginDto>
+                    Guid groupId = Guid.Parse(model.ReceiverId);
+                    message = new Message
                     {
-                        Message = "Message not sent receiver User not exist!",
-                        Data = null,
-                        StatusCode = 400
-                    });
+                        SenderId = currentUserId,
+                        Content = model.Content,
+                        Timestamp = DateTime.Now,
+                        GroupId = groupId,
+                    };
                 }
-
-                var message = new Message
+                else
                 {
-                    SenderId = currentUserId,
-                    ReceiverId = model.ReceiverId,
-                    Content = model.Content,
-                    Timestamp = DateTime.Now
-                };
+                    message = new Message
+                    {
+                        SenderId = currentUserId,
+                        ReceiverId = model.ReceiverId,
+                        Content = model.Content,
+                        Timestamp = DateTime.Now,
+                    };
+                }
 
                 var result = await _messageService.SendMessageAsync(message);
 
@@ -234,37 +239,55 @@ namespace MinimalChat.API.Controllers
                 }
 
                 // Check receiverUSer Id exist or not 
-                var receiverUserId = await _userService.GetUserByIdAsync(queryParameters.UserId.ToString());
+                var receiverUserId = await _userService.GetUserByIdAsync(queryParameters.UserId!);
+                ConversationHistoryDto conversationHistoryDto;
+                GroupMessageDto? messages;
                 if (!receiverUserId)
                 {
-                    return BadRequest(new ApiResponse<GetMessagesDto>
+                    conversationHistoryDto = new ConversationHistoryDto
                     {
-                        Message = "User not found.",
-                        Data = null,
-                        StatusCode = 400
-                    });
+                        GroupId = Guid.Parse(queryParameters.UserId!),
+                    };
+                    messages = await _messageService.GetConversationHistoryAsync(conversationHistoryDto, currentUserId);
+                }
+                else
+                {
+                    // Retrieve the conversation history
+                    messages = await _messageService.GetConversationHistoryAsync(queryParameters, currentUserId);
+                }   
+
+                List<GroupMemberDto> groupMemberDtos = null;
+                if (messages.Members != null)
+                {
+                    groupMemberDtos = messages.Members.Select(async member => new GroupMemberDto
+                    {
+                        GroupId = member.GroupId,
+                        UserId = member.UserId,
+                        IsAdmin = member.IsAdmin,
+                        UserName = await _userService.GetUserNameByIdAsync(member.UserId)
+                    }).Select(task => task.Result).ToList();
                 }
 
-                // Retrieve the conversation history
-                var messages = await _messageService.GetConversationHistoryAsync(queryParameters, currentUserId);
-
-                if (messages == null || messages.Count <= 0)
+                if (messages == null || messages.Messages.Count <= 0)
                 {
-                    return Ok(new ApiResponse<GetMessagesDto>
+                    return Ok(new ApiResponse<object>
                     {
                         Message = "No more conversation found.",
-                        Data = null,
-                        StatusCode = 400
+                        Data = groupMemberDtos ?? null,
+                        StatusCode = 200
                     });
                 }
+
                 // Map messages
-                var messageDtos = messages.Select(message => new GetMessagesDto
+                var messageDtos = messages.Messages.Select(message => new GetMessagesDto
                 {
                     Id = message.Id,
                     SenderId = message.SenderId,
                     ReceiverId = message.ReceiverId,
                     Content = message.Content,
-                    Timestamp = message.Timestamp
+                    Timestamp = message.Timestamp,
+                    GroupId = message.GroupId,
+                    Users = groupMemberDtos
                 }).ToList();
 
                 return Ok(new ApiResponse<List<GetMessagesDto>>
@@ -278,7 +301,7 @@ namespace MinimalChat.API.Controllers
             {
                 return StatusCode(500, new ApiResponse<GetMessagesDto>
                 {
-                    Message = ex.Message,
+                    Message = ex.StackTrace,
                     Data = null,
                     StatusCode = 500
                 });

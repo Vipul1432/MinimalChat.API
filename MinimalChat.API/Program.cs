@@ -27,6 +27,7 @@ namespace MinimalChat.API
             builder.Services.AddDbContextPool<MinimalChatDbContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("MinimalChatEntities"));
+                options.UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
             });
 
             builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("JWT"));

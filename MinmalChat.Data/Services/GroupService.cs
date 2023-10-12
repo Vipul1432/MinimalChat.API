@@ -33,7 +33,7 @@ namespace MinmalChat.Data.Services
         /// <returns>
         ///   A task representing the asynchronous operation, with the created Group object.
         /// </returns>
-        public async Task<Group> CreateGroupAsync(Guid currentUser, GroupDto groupDto)
+        public async Task<Group> CreateGroupAsync(string? currentUser, GroupDto groupDto)
         {
             var group = new Group
             {
@@ -41,9 +41,11 @@ namespace MinmalChat.Data.Services
                 Name = groupDto.Name,
             };
 
-            if(!groupDto.Members!.Contains(currentUser))
+            Guid currentUserGuid = Guid.Parse(currentUser!);
+
+            if (!groupDto.Members!.Contains(currentUserGuid))
             {
-                groupDto.Members.Add(currentUser);
+                groupDto.Members.Add(currentUserGuid);
             }
 
             var addedGroup = await _groupRepository.AddAsync(group);
@@ -52,7 +54,7 @@ namespace MinmalChat.Data.Services
             {
                 foreach (var memberId in groupDto.Members)
                 {
-                    var isAdmin = memberId == currentUser;
+                    var isAdmin = memberId == currentUserGuid;
                     var groupMember = new GroupMember
                     {
                         GroupId = addedGroup.Id,
@@ -76,7 +78,7 @@ namespace MinmalChat.Data.Services
         /// <returns>
         ///   A task representing the asynchronous operation, with a string result indicating the outcome.
         /// </returns>
-        public async Task<string> AddMemberToGroupAsync(Guid groupId, Guid currentUserId, List<Guid> memberIds)
+        public async Task<string> AddMemberToGroupAsync(Guid groupId, string? currentUserId, List<Guid> memberIds)
         {
             // Check if the group exists
             var group = await _context.Groups.FirstOrDefaultAsync(grp => grp.Id == groupId);
@@ -85,12 +87,14 @@ namespace MinmalChat.Data.Services
                 return "Group not found";
             }
 
-            var groupMember =  await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.UserId == currentUserId.ToString());
+            var groupMember =  await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.UserId == currentUserId);
 
             if (groupMember != null && !groupMember.IsAdmin)
             {
                 return "You are not an admin! You can't add members!";
             }
+
+            Guid currentUserGuid = Guid.Parse(currentUserId!);
 
             foreach (var memberId in memberIds)
             {
@@ -102,7 +106,7 @@ namespace MinmalChat.Data.Services
                     // Handle the case where the member already exists in the group
                     return $"Member with ID {memberId} already exists in the group";
                 }
-                var isAdmin = memberId == currentUserId;
+                var isAdmin = memberId == currentUserGuid;
                 var groupUser = new GroupMember
                 {
                     GroupId = groupId,
@@ -124,7 +128,7 @@ namespace MinmalChat.Data.Services
         /// <returns>
         ///   A task representing the asynchronous operation, with a string result indicating the outcome.
         /// </returns>
-        public async Task<string> RemoveMemberFromGroupAsync(Guid groupId, Guid currentUserId, Guid memberId)
+        public async Task<string> RemoveMemberFromGroupAsync(Guid groupId, string? currentUserId, Guid memberId)
         {
             // Check if the group exists
             var group = await _context.Groups.FirstOrDefaultAsync(grp => grp.Id == groupId);
@@ -133,7 +137,7 @@ namespace MinmalChat.Data.Services
                 return "Group not found";
             }
 
-            var groupMember = await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.UserId == currentUserId.ToString());
+            var groupMember = await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.UserId == currentUserId);
 
             if (groupMember != null && !groupMember.IsAdmin)
             {
@@ -192,7 +196,7 @@ namespace MinmalChat.Data.Services
         /// If successful, the message will indicate that the member is now an admin.
         /// If the group or member is not found, appropriate error messages will be returned.
         /// </returns>
-        public async Task<string> MakeMemberAdminAsync(Guid groupId, Guid memberId)
+        public async Task<string> MakeMemberAdminAsync(Guid groupId, Guid memberId, string? currentUserId)
         {
             var group = await _context.Groups.FindAsync(groupId);
 
@@ -200,15 +204,16 @@ namespace MinmalChat.Data.Services
             {
                 return "Group not found";
             }
+            var currentUser = await _context.GroupMembers.FirstOrDefaultAsync(grpmem => grpmem.UserId == currentUserId);
+
+            if (currentUser != null && !currentUser.IsAdmin)
+            {
+                return "You are not an admin! You can't make admin to anyone!";
+            }
 
             var groupMember = await _context.GroupMembers
                 .Where(gm => gm.GroupId == groupId && gm.UserId == memberId.ToString())
                 .FirstOrDefaultAsync();
-
-            if (groupMember == null)
-            {
-                return "Member not found in the group";
-            }
 
             if (groupMember == null)
             {
@@ -222,6 +227,35 @@ namespace MinmalChat.Data.Services
             return "Member is now an admin";
         }
 
+        /// <summary>
+        /// Deletes a group if the current user is an admin.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group to delete.</param>
+        /// <param name="currentUser">The unique identifier of the current user.</param>
+        /// <returns>A message indicating the result of the deletion.</returns>
+        public async Task<string> DeleteGroupAsync(Guid groupId, string? currentUser)
+        {
+            var group = await _context.Groups.FindAsync(groupId);
+
+            if (group == null)
+            {
+                return "Group not found";
+            }
+
+            var groupMember = await _context.GroupMembers
+                .Where(gm => gm.GroupId == groupId && gm.UserId == currentUser)
+                .FirstOrDefaultAsync();
+
+            if (groupMember == null || !groupMember.IsAdmin)
+            {
+                return "You do not have permission to delete this group";
+            }
+
+            _context.Groups.Remove(group);
+            await _context.SaveChangesAsync();
+
+            return "Group deleted successfully";
+        }
 
     }
 }

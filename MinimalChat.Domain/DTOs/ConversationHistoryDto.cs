@@ -10,9 +10,8 @@ namespace MinimalChat.Domain.DTOs
 {
     public class ConversationHistoryDto
     {
-        [Required]
-        public Guid UserId { get; set; }
-
+        public string? UserId { get; set; }
+        public Guid? GroupId { get; set; }
         public DateTime Before { get; set; } = DateTime.Now;
 
         [Range(1, int.MaxValue)]

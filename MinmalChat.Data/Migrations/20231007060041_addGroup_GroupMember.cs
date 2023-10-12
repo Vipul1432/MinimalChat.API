@@ -18,11 +18,19 @@ namespace MinmalChat.Data.Migrations
                 nullable: true,
                 defaultValue: null);
 
+            migrationBuilder.AlterColumn<string>(
+                name: "ReceiverId",
+                table: "Messages",
+                type: "nvarchar(max)",
+                nullable: true,
+                oldNullable: false,
+                defaultValue: null);
+
             migrationBuilder.CreateTable(
                 name: "Groups",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false), // Change the data type to Guid
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -34,7 +42,7 @@ namespace MinmalChat.Data.Migrations
                 name: "GroupMembers",
                 columns: table => new
                 {
-                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false), // Change the data type to Guid
+                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     IsAdmin = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -70,14 +78,6 @@ namespace MinmalChat.Data.Migrations
                 name: "IX_GroupMembers_UserId",
                 table: "GroupMembers",
                 column: "UserId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Messages_Groups_GroupId",
-                table: "Messages",
-                column: "GroupId",
-                principalTable: "Groups",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
@@ -100,6 +100,14 @@ namespace MinmalChat.Data.Migrations
             migrationBuilder.DropColumn(
                 name: "GroupId",
                 table: "Messages");
+
+            migrationBuilder.AlterColumn<string>(
+               name: "ReceiverId",
+               table: "Messages",
+               type: "nvarchar(max)",
+               nullable: false,
+               oldNullable: true,
+               defaultValue: null);
         }
 
     }
