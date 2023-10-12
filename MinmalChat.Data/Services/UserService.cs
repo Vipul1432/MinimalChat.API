@@ -7,6 +7,7 @@ using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
+using MinmalChat.Data.Context;
 using MinmalChat.Data.Helpers;
 using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
@@ -20,11 +21,13 @@ namespace MinmalChat.Data.Services
     {
         private readonly UserManager<MinimalChatUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly MinimalChatDbContext _context;
 
-        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration)
+        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration, MinimalChatDbContext context)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _context = context;
         }
 
         /// <summary>
@@ -236,7 +239,7 @@ namespace MinmalChat.Data.Services
                 _configuration["JWT:ValidIssuer"],
                 _configuration["JWT:ValidAudience"],
                 claims,
-                expires: DateTime.Now.AddSeconds(Convert.ToInt32(_configuration["JWT:LifetimeInDays"])),
+                expires: DateTime.Now.AddDays(Convert.ToInt32(_configuration["JWT:LifetimeInDays"])),
                 signingCredentials: credentials
             );
 
@@ -250,9 +253,22 @@ namespace MinmalChat.Data.Services
         /// <remarks>
         /// This method asynchronously fetches a list of all registered users in the system.
         /// </remarks>
-        public async Task<List<MinimalChatUser>> GetAllUsersAsync()
+        public async Task<List<MinimalChatUser>> GetAllUsersAsync(bool isOnlyUserList, string currentUserId)
         {
-            return await _userManager.Users.ToListAsync();
+            var users = await _userManager.Users.ToListAsync();
+            if (!isOnlyUserList)
+            {
+                var userGroups = await _context.Groups.Include(x => x.Members).Where(g => g.Members!.Any(m => m.UserId == currentUserId)).ToListAsync();
+                var usersFromGroups = userGroups.Select(group => new MinimalChatUser
+                {
+                    Id = group.Id.ToString(),
+                    Name = group.Name,
+                }).ToList();
+
+                // Append the users from groups to the original list of users
+                users.AddRange(usersFromGroups);
+            }
+            return users;
         }
 
         /// <summary>
@@ -372,6 +388,16 @@ namespace MinmalChat.Data.Services
 
             return principal;
 
+        }
+
+        public async Task<string> GetUserNameByIdAsync(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user != null)
+            {
+                return user.Name;
+            }
+            return null;
         }
     }
 }

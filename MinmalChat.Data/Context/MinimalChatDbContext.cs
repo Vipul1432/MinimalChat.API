@@ -39,15 +39,6 @@ namespace MinmalChat.Data.Context
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Define the relationship between the Message entity and the Receiver
-            modelBuilder.Entity<Message>()
-                .HasOne(m => m.Receiver)
-                .WithMany(u => u.ReceivedMessages)
-                .HasForeignKey(m => m.ReceiverId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-
-
             // Configure the primary key for the GroupMember entity. 
             modelBuilder.Entity<GroupMember>()
             .HasKey(gm => new { gm.GroupId, gm.UserId });
@@ -64,12 +55,6 @@ namespace MinmalChat.Data.Context
                 .HasOne(gm => gm.User)
                 .WithMany()
                 .HasForeignKey(gm => gm.UserId);
-
-            // Define the relationship between Message and Group.
-            modelBuilder.Entity<Message>()
-                .HasOne(m => m.Group)
-                .WithMany(g => g.Messages)
-                .HasForeignKey(m => m.GroupId);
         }
     }
 }

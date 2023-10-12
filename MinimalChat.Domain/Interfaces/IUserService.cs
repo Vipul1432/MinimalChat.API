@@ -50,7 +50,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <remarks>
         /// This method asynchronously fetches a list of all registered users in the system.
         /// </remarks>
-        Task<List<MinimalChatUser>> GetAllUsersAsync();
+        Task<List<MinimalChatUser>> GetAllUsersAsync(bool isOnlyUserList, string currentUserId);
 
         /// <summary>
         /// Checks if a user with the specified user ID exists in the database.
@@ -100,5 +100,7 @@ namespace MinimalChat.Domain.Interfaces
         /// including a new access token and refresh token if successful, or an error message if unsuccessful.
         /// </returns>
         Task<ApiResponse<TokenModel>> GetRefreshTokenAsync(TokenModel tokenModel);
+
+        Task<string> GetUserNameByIdAsync(string id);
     }
 }

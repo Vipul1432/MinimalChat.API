@@ -161,13 +161,14 @@ namespace MinimalChat.API.Controllers
         /// </remarks>
         [HttpGet("users")]
         [Authorize]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllUsers([FromQuery] bool isOnlyUserList)
         {
             try
             {
                 // fetch current UserId
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var users = await _userService.GetAllUsersAsync();
+
+                var users = await _userService.GetAllUsersAsync(isOnlyUserList, currentUserId);
 
                 var usersList = new List<UserDto>();
 
@@ -180,7 +181,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Id = user.Id,
                         Name = user.Name,
-                        Email = user.Email
+                        Email = user.Email ?? null,
                     });
                 }
 

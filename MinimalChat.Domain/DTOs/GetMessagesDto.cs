@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MinimalChat.Domain.Helpers;
+using MinimalChat.Domain.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -14,12 +16,15 @@ namespace MinimalChat.Domain.DTOs
         [Required]
         public string SenderId { get; set; }
 
-        [Required]
-        public string ReceiverId { get; set; }
+
+        public string? ReceiverId { get; set; }
+        public Guid? GroupId { get; set; }
         [Required]
         [MaxLength(1000)]
         public string Content { get; set; }
         [Required]
         public DateTime Timestamp { get; set; }
+
+        public List<GroupMemberDto?> Users { get; set; }
     }
 }

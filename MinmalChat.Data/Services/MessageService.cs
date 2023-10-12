@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
 using MinimalChat.Domain.DTOs;
+using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
 using MinmalChat.Data.Helpers;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MinmalChat.Data.Services
 {
@@ -124,14 +126,37 @@ namespace MinmalChat.Data.Services
         /// <param name="queryParameters">The query parameters specifying user IDs, timestamp, count, and sort order.</param>
         /// <param name="currentUserId">The ID of the current user.</param>
         /// <returns>A list of messages representing the conversation history.</returns>
-        public async Task<List<Message?>> GetConversationHistoryAsync(ConversationHistoryDto queryParameters, string currentUserId)
+        public async Task<GroupMessageDto?> GetConversationHistoryAsync(ConversationHistoryDto queryParameters, string currentUserId)
         {
-            var query = _context.Messages.Where(m =>
-                                            (m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId.ToString()) ||
-                                            (m.SenderId == queryParameters.UserId.ToString() && m.ReceiverId == currentUserId))
-                                         .Where(m => m.Timestamp < queryParameters.Before);
+            IQueryable<Message> query;
+            List<GroupMember?> groupUsers = null;
+            if (queryParameters.UserId != null)
+            {
+                query = _context.Messages
+                                 .Where(m =>
+                                     (
+                                         // Case 1: Personal messages (non-null SenderId and ReceiverId)
+                                         m.GroupId == null &&
+                                         ((m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
+                                         (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId))
+                                     )
+                                 );
+            }
+            else
+            {
+                query = _context.Messages.Where(m => m.ReceiverId == null && m.GroupId == queryParameters.GroupId);
+                groupUsers = await _context.GroupMembers.Where(gm => gm.GroupId == queryParameters.GroupId).ToListAsync();
+            }
 
-            query = query.OrderByDescending(m => m.Timestamp);
+
+
+            // Additional condition to filter messages before a specific timestamp
+            query = query.Where(m => m.Timestamp < queryParameters.Before);
+
+            // Sort the messages based on the specified sort order
+            query = queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc
+                ? query.OrderBy(m => m.Timestamp)
+                : query.OrderByDescending(m => m.Timestamp);
 
             // Limit the number of messages retrieved based on the specified count
             if (queryParameters.Count > 0)
@@ -150,7 +175,13 @@ namespace MinmalChat.Data.Services
             }
 
             // Execute the query and return the conversation history
-            return await query.ToListAsync();
+            List<Message?> messages =  await query.ToListAsync();
+            GroupMessageDto groupMessages = new GroupMessageDto()
+            {
+                Messages = messages,
+                Members = groupUsers,
+            };
+            return groupMessages;
         }
 
         /// <summary>
@@ -179,6 +210,7 @@ namespace MinmalChat.Data.Services
 
             return filteredConversations;
         }
+
     }
 
 }

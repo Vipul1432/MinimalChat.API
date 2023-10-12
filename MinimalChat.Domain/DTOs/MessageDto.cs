@@ -9,8 +9,9 @@ namespace MinimalChat.Domain.DTOs
 {
     public class MessageDto
     {
-        [Required]
-        public string ReceiverId { get; set; }
+       
+        public string? ReceiverId { get; set; }
+        public Guid? GroupId { get; set; }
         [Required]
         [MaxLength(1000)]
         public string Content { get; set; }
