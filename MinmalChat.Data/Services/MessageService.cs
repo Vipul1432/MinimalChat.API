@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic;
 using MinimalChat.Domain.DTOs;
 using MinimalChat.Domain.Helpers;
@@ -14,11 +15,13 @@ namespace MinmalChat.Data.Services
     {
         private readonly IRepository<Message> _messageRepository;
         private readonly MinimalChatDbContext _context;
+        private readonly IMapper _mapper;
 
-        public MessageService(IRepository<Message> messageRepository, MinimalChatDbContext context)
+        public MessageService(IRepository<Message> messageRepository, MinimalChatDbContext context, IMapper mapper)
         {
             _messageRepository = messageRepository;
             _context = context;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -132,23 +135,16 @@ namespace MinmalChat.Data.Services
             List<GroupMember?> groupUsers = null;
             if (queryParameters.UserId != null)
             {
-                query = _context.Messages
-                                 .Where(m =>
-                                     (
-                                         // Case 1: Personal messages (non-null SenderId and ReceiverId)
+                query = _context.Messages.Where(m =>
                                          m.GroupId == null &&
                                          ((m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
-                                         (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId))
-                                     )
-                                 );
+                                         (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)));
             }
             else
             {
                 query = _context.Messages.Where(m => m.ReceiverId == null && m.GroupId == queryParameters.GroupId);
                 groupUsers = await _context.GroupMembers.Where(gm => gm.GroupId == queryParameters.GroupId).ToListAsync();
             }
-
-
 
             // Additional condition to filter messages before a specific timestamp
             query = query.Where(m => m.Timestamp < queryParameters.Before);
@@ -195,20 +191,11 @@ namespace MinmalChat.Data.Services
         /// </returns>
         public async Task<List<Message>> SearchConversationsAsync(string query, string currentUserId)
         {
-            var filteredConversations = await _context.Messages
-                                         .Where(m => (m.SenderId == currentUserId) || (m.ReceiverId == currentUserId))
-                                         .Where(m => m.Content.Contains(query))
-                                         .Select(m => new Message
-                                         {
-                                             Id = m.Id,
-                                             SenderId = m.SenderId,
-                                             ReceiverId = m.ReceiverId,
-                                             Content = m.Content,
-                                             Timestamp = m.Timestamp
-                                         })
-                                         .ToListAsync();
+            return await _context.Messages.Where(m => (m.SenderId == currentUserId) || (m.ReceiverId == currentUserId))
+                                          .Where(m => m.Content.Contains(query))
+                                          .Select(m => _mapper.Map<Message>(m))
+                                          .ToListAsync();
 
-            return filteredConversations;
         }
 
     }

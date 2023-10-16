@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -22,12 +23,14 @@ namespace MinimalChat.API.Controllers
         private readonly IMessageService _messageService;
         private readonly IHubContext<ChatHub> _hubContext;
         private readonly IUserService _userService;
+        private readonly IMapper _mapper;
 
-        public MessagesController(IMessageService messageService, IUserService userService, IHubContext<ChatHub> hubContext)
+        public MessagesController(IMessageService messageService, IUserService userService, IHubContext<ChatHub> hubContext, IMapper mapper)
         {
             _messageService = messageService;
             _userService = userService;
             _hubContext = hubContext;
+            _mapper = mapper;
         }
 
         #region Send Message to users
@@ -51,25 +54,16 @@ namespace MinimalChat.API.Controllers
                 if (!IsUserExist)
                 {
                     Guid groupId = Guid.Parse(model.ReceiverId);
-                    message = new Message
-                    {
-                        SenderId = currentUserId,
-                        Content = model.Content,
-                        Timestamp = DateTime.Now,
-                        GroupId = groupId,
-                    };
+                    message = _mapper.Map<Message>(model);
+                    message.SenderId = currentUserId;
+                    message.GroupId = groupId;
                 }
                 else
                 {
-                    message = new Message
-                    {
-                        SenderId = currentUserId,
-                        ReceiverId = model.ReceiverId,
-                        Content = model.Content,
-                        Timestamp = DateTime.Now,
-                    };
+                    message = _mapper.Map<Message>(model);
+                    message.SenderId = currentUserId;
                 }
-
+                message.Timestamp = DateTime.Now;
                 var result = await _messageService.SendMessageAsync(message);
 
                 // Broadcast the message via SignalR
@@ -254,18 +248,17 @@ namespace MinimalChat.API.Controllers
                 {
                     // Retrieve the conversation history
                     messages = await _messageService.GetConversationHistoryAsync(queryParameters, currentUserId);
-                }   
-
+                }
+                // Map group messages
                 List<GroupMemberDto> groupMemberDtos = null;
                 if (messages.Members != null)
                 {
-                    groupMemberDtos = messages.Members.Select(async member => new GroupMemberDto
+                    groupMemberDtos = messages.Members.ToList().ConvertAll(member =>
                     {
-                        GroupId = member.GroupId,
-                        UserId = member.UserId,
-                        IsAdmin = member.IsAdmin,
-                        UserName = await _userService.GetUserNameByIdAsync(member.UserId)
-                    }).Select(task => task.Result).ToList();
+                        var groupMemberDto = _mapper.Map<GroupMemberDto>(member);
+                        groupMemberDto.UserName = _userService.GetUserNameByIdAsync(member.UserId).Result;
+                        return groupMemberDto;
+                    });
                 }
 
                 if (messages == null || messages.Messages.Count <= 0)
@@ -279,15 +272,11 @@ namespace MinimalChat.API.Controllers
                 }
 
                 // Map messages
-                var messageDtos = messages.Messages.Select(message => new GetMessagesDto
+                var messageDtos = messages.Messages.Select(message =>
                 {
-                    Id = message.Id,
-                    SenderId = message.SenderId,
-                    ReceiverId = message.ReceiverId,
-                    Content = message.Content,
-                    Timestamp = message.Timestamp,
-                    GroupId = message.GroupId,
-                    Users = groupMemberDtos
+                    var messageDto = _mapper.Map<GetMessagesDto>(message);
+                    messageDto.Users = groupMemberDtos;
+                    return messageDto;
                 }).ToList();
 
                 return Ok(new ApiResponse<List<GetMessagesDto>>
@@ -351,17 +340,11 @@ namespace MinimalChat.API.Controllers
                         StatusCode = 200
                     });
                 }
-
+                // Map Mesage to MessageDto
+                var messageDtos = _mapper.Map<List<MessageDto>>(conversations);
                 return Ok(new
                 {
-                    messages = conversations.Select(m => new
-                    {
-                        id = m.Id,
-                        senderId = m.SenderId,
-                        receiverId = m.ReceiverId,
-                        content = m.Content,
-                        timestamp = m.Timestamp
-                    })
+                    messages = messageDtos
                 });
             }
             catch (Exception ex)

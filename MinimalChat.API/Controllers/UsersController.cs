@@ -1,4 +1,5 @@
-﻿using Google.Apis.Auth;
+﻿using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,10 +19,13 @@ namespace MinimalChat.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly AppSettings _applicationSettings;
-        public UsersController(IUserService userService, IOptions<AppSettings> applicationSettings)
+        private readonly IMapper _mapper;
+
+        public UsersController(IUserService userService, IOptions<AppSettings> applicationSettings, IMapper mapper)
         {
             _userService = userService;
             _applicationSettings = applicationSettings.Value;
+            _mapper = mapper;
         }
 
         #region User Registration
@@ -170,20 +174,8 @@ namespace MinimalChat.API.Controllers
 
                 var users = await _userService.GetAllUsersAsync(isOnlyUserList, currentUserId);
 
-                var usersList = new List<UserDto>();
-
-                foreach (var user in users)
-                {
-                    // Skip the current user
-                    if (user.Id == currentUserId)
-                        continue;
-                    usersList.Add(new UserDto
-                    {
-                        Id = user.Id,
-                        Name = user.Name,
-                        Email = user.Email ?? null,
-                    });
-                }
+                //Map MinimalChatUser to UserDto
+                var usersList = _mapper.Map<List<UserDto>>(users);
 
                 return Ok(new ApiResponse<List<UserDto>>
                 {

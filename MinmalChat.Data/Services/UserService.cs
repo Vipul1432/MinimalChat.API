@@ -1,4 +1,5 @@
-﻿using Google.Apis.Auth;
+﻿using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,12 +23,14 @@ namespace MinmalChat.Data.Services
         private readonly UserManager<MinimalChatUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly MinimalChatDbContext _context;
+        private readonly IMapper _mapper;
 
-        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration, MinimalChatDbContext context)
+        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration, MinimalChatDbContext context, IMapper mapper)
         {
             _userManager = userManager;
             _configuration = configuration;
             _context = context;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -255,15 +258,13 @@ namespace MinmalChat.Data.Services
         /// </remarks>
         public async Task<List<MinimalChatUser>> GetAllUsersAsync(bool isOnlyUserList, string currentUserId)
         {
-            var users = await _userManager.Users.ToListAsync();
+            var users = await _userManager.Users.Where(user => user.Id != currentUserId).ToListAsync();
+            
             if (!isOnlyUserList)
             {
                 var userGroups = await _context.Groups.Include(x => x.Members).Where(g => g.Members!.Any(m => m.UserId == currentUserId)).ToListAsync();
-                var usersFromGroups = userGroups.Select(group => new MinimalChatUser
-                {
-                    Id = group.Id.ToString(),
-                    Name = group.Name,
-                }).ToList();
+
+                var usersFromGroups = _mapper.Map<List<MinimalChatUser>>(userGroups);
 
                 // Append the users from groups to the original list of users
                 users.AddRange(usersFromGroups);
@@ -390,6 +391,14 @@ namespace MinmalChat.Data.Services
 
         }
 
+        /// <summary>
+        /// Retrieves the user's name associated with the provided user ID asynchronously.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <returns>The user's name if found, or null if no user is associated with the provided ID.</returns>
+        /// <remarks>
+        /// This method performs an asynchronous lookup of the user by their ID and returns their name if a matching user is found. If no user is found, it returns null.
+        /// </remarks>
         public async Task<string> GetUserNameByIdAsync(string id)
         {
             var user = await _userManager.FindByIdAsync(id);

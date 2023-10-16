@@ -69,6 +69,9 @@ namespace MinimalChat.API
                 };
             });
 
+            //builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
+
             // Registering scoped services for repository interfaces.
             // This allows for the use of dependency injection to provide instances of these repositories
             // to various parts of the application, ensuring data access is scoped to the current request.

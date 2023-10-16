@@ -101,6 +101,14 @@ namespace MinimalChat.Domain.Interfaces
         /// </returns>
         Task<ApiResponse<TokenModel>> GetRefreshTokenAsync(TokenModel tokenModel);
 
+        /// <summary>
+        /// Retrieves the user's name associated with the provided user ID asynchronously.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <returns>The user's name if found, or null if no user is associated with the provided ID.</returns>
+        /// <remarks>
+        /// This method performs an asynchronous lookup of the user by their ID and returns their name if a matching user is found. If no user is found, it returns null.
+        /// </remarks>
         Task<string> GetUserNameByIdAsync(string id);
     }
 }

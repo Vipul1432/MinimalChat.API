@@ -40,8 +40,7 @@ namespace MinmalChat.Data.Services
         /// </returns>
         public async Task<IEnumerable<RequestLog>> GetLogsAsync(DateTime startTime, DateTime endTime)
         {
-            return await _context.RequestLogs.Where(log => log.RequestTimestamp >= startTime && log.RequestTimestamp <= endTime)
-                                             .ToListAsync();
+            return await _context.RequestLogs.Where(log => log.RequestTimestamp >= startTime && log.RequestTimestamp <= endTime).ToListAsync();
         }
     }
 }
