@@ -139,6 +139,26 @@ namespace MinmalChat.Data.Services
                                          m.GroupId == null &&
                                          ((m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
                                          (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)));
+
+                List<Message> messagesWithNullFilePath = await _context.Messages
+                                                          .Where(m =>
+                                                              m.GroupId == null &&
+                                                              ((m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
+                                                              (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)) &&
+                                                              m.Timestamp < queryParameters.Before &&
+                                                              (m.FilePath == null || m.Content == null))
+                                                          .ToListAsync();
+                var messagesWithFilePath = await _context.Messages
+                                                            .Where(m => m.FilePath != null && m.Content == null && 
+                                                            m.GroupId == null)
+                                                            .ToListAsync();
+                List<Message> messagesWithNonNullFilePath = await _context.Messages
+                                                                    .Where(m =>
+                                                                        m.Content == null &&
+                                                                        ((m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
+                                                                        (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)) &&
+                                                                        m.Timestamp < queryParameters.Before)
+                                                                    .ToListAsync();
             }
             else
             {
@@ -147,28 +167,18 @@ namespace MinmalChat.Data.Services
             }
 
             // Additional condition to filter messages before a specific timestamp
-            query = query.Where(m => m.Timestamp < queryParameters.Before);
-
-            // Sort the messages based on the specified sort order
-            query = queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc
-                ? query.OrderBy(m => m.Timestamp)
-                : query.OrderByDescending(m => m.Timestamp);
+           // query = query.Where(m => m.Timestamp < queryParameters.Before);
 
             // Limit the number of messages retrieved based on the specified count
-            if (queryParameters.Count > 0)
-            {
-                query = query.Take(queryParameters.Count);
-            }
+            //if (queryParameters.Count > 0)
+            //{
+            //    query = query.Take(queryParameters.Count);
+            //}
 
             // Sort the messages based on the specified sort order
-            if (queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc)
-            {
-                query = query.OrderBy(m => m.Timestamp);
-            }
-            else
-            {
-                query = query.OrderByDescending(m => m.Timestamp);
-            }
+            //query = queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc
+            //    ? query.OrderBy(m => m.Timestamp)
+            //    : query.OrderByDescending(m => m.Timestamp);
 
             // Execute the query and return the conversation history
             List<Message?> messages =  await query.ToListAsync();
@@ -196,6 +206,44 @@ namespace MinmalChat.Data.Services
                                           .Select(m => _mapper.Map<Message>(m))
                                           .ToListAsync();
 
+        }
+
+        public async Task<string> UploadFileAsync(FileUploadDto fileUploadDto)
+        {
+            try
+            {
+                if (fileUploadDto.FileData == null || fileUploadDto.FileData.Length == 0)
+                {
+                    throw new ArgumentException("File data is empty or null.");
+                }
+
+                Directory.CreateDirectory(fileUploadDto.UploadDirectory);
+
+                string uniqueFileName = Guid.NewGuid() + "_" + fileUploadDto.FileName;
+
+                string filePath = Path.Combine(fileUploadDto.UploadDirectory, uniqueFileName);
+
+                await File.WriteAllBytesAsync(filePath, fileUploadDto.FileData);
+
+                // Store the file name in the database
+                var fileEntity = new Message
+                {
+                    FilePath = uniqueFileName,
+                    SenderId = fileUploadDto.SenderId, 
+                    ReceiverId = fileUploadDto.ReceiverId,
+                    Timestamp = DateTime.Now,
+                };
+
+                // Assuming _dbContext is your database context
+                _context.Messages.Add(fileEntity);
+                await _context.SaveChangesAsync();
+
+                return filePath;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
     }

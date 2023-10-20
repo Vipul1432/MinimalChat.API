@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using Microsoft.SqlServer.Server;
 using MinimalChat.API.Hubs;
 using MinimalChat.Domain.DTOs;
@@ -12,6 +13,7 @@ using MinmalChat.Data.Helpers;
 using MinmalChat.Data.Services;
 using System.Globalization;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace MinimalChat.API.Controllers
 {
@@ -22,15 +24,17 @@ namespace MinimalChat.API.Controllers
     {
         private readonly IMessageService _messageService;
         private readonly IHubContext<ChatHub> _hubContext;
+        private readonly AppSettings _applicationSettings;
         private readonly IUserService _userService;
         private readonly IMapper _mapper;
 
-        public MessagesController(IMessageService messageService, IUserService userService, IHubContext<ChatHub> hubContext, IMapper mapper)
+        public MessagesController(IMessageService messageService, IUserService userService, IHubContext<ChatHub> hubContext, IMapper mapper, IOptions<AppSettings> applicationSettings)
         {
             _messageService = messageService;
             _userService = userService;
             _hubContext = hubContext;
             _mapper = mapper;
+            _applicationSettings = applicationSettings.Value;
         }
 
         #region Send Message to users
@@ -359,5 +363,60 @@ namespace MinimalChat.API.Controllers
         }
 
         #endregion Retrieve message based on input
+
+        #region Send Files
+
+        [HttpPost("messages/upload/{receiverId}")]
+        public async Task<IActionResult> UploadFile(string receiverId, IFormFile file)
+        {
+            try
+            {
+                var senderId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("No file selected or the file is empty.");
+                }
+
+                using (var stream = new MemoryStream())
+                {
+                    await file.CopyToAsync(stream);
+                    var fileUploadDto = new FileUploadDto
+                    {
+                        SenderId = senderId,
+                        ReceiverId = receiverId,
+                        FileData = stream.ToArray(),
+                        FileName = file.FileName,
+                        UploadDirectory = _applicationSettings.UploadDirectory
+                    };
+                    var uploadedFilePath = await _messageService.UploadFileAsync(fileUploadDto);
+
+                    if (!string.IsNullOrEmpty(uploadedFilePath))
+                    {
+                        return Ok(new
+                        {
+                            Message = "File uploaded successfully",
+                            FilePath = uploadedFilePath
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest("File upload failed.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<GetMessagesDto>
+                {
+                    Message = ex.Message,
+                    Data = null,
+                    StatusCode = 500
+                });
+            }
+        }
+
+
+
+        #endregion Send Files
     }
 }

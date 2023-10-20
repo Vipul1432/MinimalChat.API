@@ -1,13 +1,16 @@
 
+using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MinimalChat.API.Hubs;
 using MinimalChat.API.Middleware;
 using MinimalChat.Domain.Helpers;
 using MinimalChat.Domain.Interfaces;
+using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
 using MinmalChat.Data.Repository;
 using MinmalChat.Data.Services;

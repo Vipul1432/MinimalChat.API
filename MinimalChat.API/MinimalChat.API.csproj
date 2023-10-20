@@ -25,4 +25,8 @@
     <ProjectReference Include="..\MinmalChat.Data\MinmalChat.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Uploaded_Files\" />
+  </ItemGroup>
+
 </Project>

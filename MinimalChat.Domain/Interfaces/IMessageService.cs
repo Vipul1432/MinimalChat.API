@@ -53,5 +53,7 @@ namespace MinimalChat.Domain.Interfaces
         /// A list of messages matching the keyword within conversations.
         /// </returns>
         Task<List<Message>> SearchConversationsAsync(string query, string currentUserId);
+
+        Task<string> UploadFileAsync(FileUploadDto fileUploadDto);
     }
 }
