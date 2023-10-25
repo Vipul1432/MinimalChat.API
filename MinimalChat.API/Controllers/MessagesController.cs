@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Options;
 using Microsoft.SqlServer.Server;
 using MinimalChat.API.Hubs;
@@ -12,6 +13,7 @@ using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using MinmalChat.Data.Services;
 using System.Globalization;
+using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
@@ -61,6 +63,7 @@ namespace MinimalChat.API.Controllers
                     message = _mapper.Map<Message>(model);
                     message.SenderId = currentUserId;
                     message.GroupId = groupId;
+                    message.ReceiverId = null;
                 }
                 else
                 {
@@ -279,6 +282,24 @@ namespace MinimalChat.API.Controllers
                 var messageDtos = messages.Messages.Select(message =>
                 {
                     var messageDto = _mapper.Map<GetMessagesDto>(message);
+                    if (string.IsNullOrEmpty(messageDto.Content))
+                    {
+                        string fileName = message.FilePath;
+                        var filePath = Path.Combine(_applicationSettings.UploadDirectory, fileName);
+                        if (System.IO.File.Exists(filePath))
+                        {
+                            string pattern = @"^[\w-]+_(.*)$";
+
+                            Match match = Regex.Match(fileName, pattern);
+
+                            if (match.Success)
+                            {
+                                messageDto.FileName = match.Groups[1].Value;
+                            }
+                            messageDto.FilePath = message.FilePath;
+                        }
+
+                    }
                     messageDto.Users = groupMemberDtos;
                     return messageDto;
                 }).ToList();
@@ -366,6 +387,17 @@ namespace MinimalChat.API.Controllers
 
         #region Send Files
 
+        /// <summary>
+        /// Handles the upload of a file for messaging purposes.
+        /// </summary>
+        /// <param name="receiverId">The recipient's user ID or group ID.</param>
+        /// <param name="file">The file to be uploaded.</param>
+        /// <returns>Returns an IActionResult indicating the result of the file upload operation, including success or error messages.
+        /// </returns>
+        /// <remarks>
+        /// This action method receives a file, checks if it's valid, and processes it for either an individual recipient or a group.
+        /// It uses SignalR to broadcast the uploaded file's information to all connected clients.
+        /// </remarks>
         [HttpPost("messages/upload/{receiverId}")]
         public async Task<IActionResult> UploadFile(string receiverId, IFormFile file)
         {
@@ -377,18 +409,40 @@ namespace MinimalChat.API.Controllers
                     return BadRequest("No file selected or the file is empty.");
                 }
 
+                bool IsUserExist = await _userService.GetUserByIdAsync(receiverId);
+
+                FileUploadDto fileUploadDto;
                 using (var stream = new MemoryStream())
                 {
                     await file.CopyToAsync(stream);
-                    var fileUploadDto = new FileUploadDto
+
+                    if (!IsUserExist)
                     {
-                        SenderId = senderId,
-                        ReceiverId = receiverId,
-                        FileData = stream.ToArray(),
-                        FileName = file.FileName,
-                        UploadDirectory = _applicationSettings.UploadDirectory
-                    };
+                        fileUploadDto = new FileUploadDto
+                        {
+                            SenderId = senderId,
+                            GroupId = Guid.Parse(receiverId),
+                            FileData = stream.ToArray(),
+                            FileName = file.FileName,
+                            UploadDirectory = _applicationSettings.UploadDirectory
+                        };
+                    }
+                    else
+                    {
+                        fileUploadDto = new FileUploadDto
+                        {
+                            SenderId = senderId,
+                            ReceiverId = receiverId,
+                            FileData = stream.ToArray(),
+                            FileName = file.FileName,
+                            UploadDirectory = _applicationSettings.UploadDirectory
+                        };
+                    }
+                   
                     var uploadedFilePath = await _messageService.UploadFileAsync(fileUploadDto);
+
+                    // Broadcast the message via SignalR
+                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", fileUploadDto.SenderId, file.FileName);
 
                     if (!string.IsNullOrEmpty(uploadedFilePath))
                     {
@@ -415,8 +469,72 @@ namespace MinimalChat.API.Controllers
             }
         }
 
-
-
         #endregion Send Files
+
+        #region Download Files
+
+        /// <summary>
+        /// Retrieves and serves a file for download by its associated message ID.
+        /// </summary>
+        /// <param name="messageId">The unique identifier of the message containing the file to be downloaded.</param>
+        /// <returns>Returns an IActionResult containing the requested file for download, if it exists, or returns a 'File not found' response.
+        /// </returns>
+        /// <remarks>
+        /// This action method retrieves a file by its associated message ID, and if the file exists, it serves it for download.
+        /// It sets the appropriate content type and response headers to trigger a download prompt in the client's browser.
+        /// </remarks>
+        [HttpGet("download/{messageId}")]
+        public async Task<IActionResult> DownloadFile(int messageId)
+        {
+            Message message = await _messageService.GetMessageByIdAsync(messageId);
+            string storedfileName = message.FilePath!;
+            var filePath = Path.Combine(_applicationSettings.UploadDirectory, storedfileName);
+
+            if (System.IO.File.Exists(filePath))
+            {
+                string contentType = GetContentType(filePath);
+                var fileBytes = System.IO.File.ReadAllBytes(filePath);
+                string pattern = @"^[\w-]+_(.*)$";
+
+                Match match = Regex.Match(storedfileName, pattern);
+                var fileName = match.Groups[1].Value;
+                Response.Headers.Add("Content-Disposition", new ContentDisposition
+                {
+                    FileName = fileName,
+                    //It open the file in the browser
+                    Inline = true, 
+                }.ToString());
+
+                return File(fileBytes, contentType, fileName);
+            }
+            else
+            {
+                return NotFound("File not found");
+            }
+        }
+
+        /// <summary>
+        /// Determines and returns the content type (MIME type) of a file based on its file extension.
+        /// </summary>
+        /// <param name="filePath">The path to the file for which the content type is to be determined.</param>
+        /// <returns>
+        /// A string representing the content type (MIME type) of the file. If the content type cannot be determined, it defaults to "application/octet-stream."
+        /// </returns>
+        /// <remarks>
+        /// This method uses a `FileExtensionContentTypeProvider` to guess the content type of a file based on its extension.
+        /// If the content type cannot be determined, it defaults to a generic "application/octet-stream" type.
+        /// </remarks>
+        private string GetContentType(string filePath)
+        {
+            var provider = new FileExtensionContentTypeProvider();
+            if (provider.TryGetContentType(filePath, out var guessedType))
+            {
+                return guessedType;
+            }
+
+            return "application/octet-stream";
+        }
+
+        #endregion Download Files
     }
 }

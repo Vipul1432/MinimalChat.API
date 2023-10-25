@@ -22,6 +22,10 @@ namespace MinimalChat.Domain.DTOs
         [Required]
         [MaxLength(1000)]
         public string Content { get; set; }
+
+        public string? FilePath { get; set; }
+        public string? FileName { get; set; }
+
         [Required]
         public DateTime Timestamp { get; set; }
 

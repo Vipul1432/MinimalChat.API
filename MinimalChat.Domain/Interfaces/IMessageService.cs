@@ -54,6 +54,24 @@ namespace MinimalChat.Domain.Interfaces
         /// </returns>
         Task<List<Message>> SearchConversationsAsync(string query, string currentUserId);
 
+        /// <summary>
+        /// Asynchronously uploads a file based on the provided information in the 'fileUploadDto.'
+        /// </summary>
+        /// <param name="fileUploadDto">Data transfer object containing file information and upload details.</param>
+        /// <returns>A task that represents the asynchronous operation, returning a string representing the uploaded file's path if successful.</returns>
+        /// <remarks>
+        /// This method is used to asynchronously upload a file and returns the file's path upon successful completion. The operation is based on the information provided in the 'fileUploadDto.'
+        /// </remarks>
         Task<string> UploadFileAsync(FileUploadDto fileUploadDto);
+
+        /// <summary>
+        /// Asynchronously retrieves a message by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the message to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation, returning a 'Message' object when the message is successfully retrieved.</returns>
+        /// <remarks>
+        /// This method is used to asynchronously fetch a message by its unique identifier. It returns a 'Message' object when the specified message is found and retrieved.
+        /// </remarks>
+        Task<Message> GetMessageByIdAsync(int id);
     }
 }
