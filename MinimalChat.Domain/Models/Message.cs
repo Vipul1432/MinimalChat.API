@@ -19,12 +19,15 @@ namespace MinimalChat.Domain.Models
         public string? ReceiverId { get; set; }
         [Required]
         [MaxLength(1000)] 
-        public string Content { get; set; }
+        public string? Content { get; set; }
         [Required]
         public DateTime Timestamp { get; set; }
 
         // Group Id for group messages
         public Guid? GroupId { get; set; }
+
+        // File path or file name property for uploaded files
+        public string? FilePath { get; set; }
 
         // Navigation property to represent the sender of this message
         public MinimalChatUser Sender { get; set; }

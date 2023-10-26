@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MinmalChat.Data.Context
 {
@@ -37,7 +38,23 @@ namespace MinmalChat.Data.Context
                 .HasOne(m => m.Sender)
                 .WithMany(u => u.SentMessages)
                 .HasForeignKey(m => m.SenderId)
-                .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict);
+
+            // Configures the properties of the 'Message' entity, setting their 'IsRequired' constraints.
+            // This code configures the 'Message' entity's properties, specifying whether they are required or not. 
+            // It ensures that the 'SenderId' and 'Timestamp' properties are required, while 'ReceiverId', 'Content', 'GroupId', and 'FilePath' are optional.
+            modelBuilder.Entity<Message>()
+                   .Property(m => m.SenderId).IsRequired(true);
+            modelBuilder.Entity<Message>()
+                   .Property(m => m.ReceiverId).IsRequired(false);
+            modelBuilder.Entity<Message>()
+                  .Property(m => m.Content).IsRequired(false);
+            modelBuilder.Entity<Message>()
+                  .Property(m => m.Timestamp).IsRequired(true);
+            modelBuilder.Entity<Message>()
+                  .Property(m => m.GroupId).IsRequired(false);
+            modelBuilder.Entity<Message>()
+                  .Property(m => m.FilePath).IsRequired(false);
 
             // Configure the primary key for the GroupMember entity. 
             modelBuilder.Entity<GroupMember>()

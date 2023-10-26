@@ -135,40 +135,34 @@ namespace MinmalChat.Data.Services
             List<GroupMember?> groupUsers = null;
             if (queryParameters.UserId != null)
             {
-                query = _context.Messages.Where(m =>
-                                         m.GroupId == null &&
-                                         ((m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
-                                         (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)));
+                query = _context.Messages.Where(m => (m.GroupId == null && m.FilePath == null &&
+                                            (m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
+                                            (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)) ||
+                                            (m.Content == null && m.GroupId == null &&
+                                            (m.SenderId == currentUserId && m.ReceiverId == queryParameters.UserId) ||
+                                            (m.SenderId == queryParameters.UserId && m.ReceiverId == currentUserId)));
             }
             else
             {
-                query = _context.Messages.Where(m => m.ReceiverId == null && m.GroupId == queryParameters.GroupId);
+                query = _context.Messages.Where(m => (m.ReceiverId == null && m.Content != null && m.GroupId == queryParameters.GroupId) ||
+                                          (m.ReceiverId == null && m.Content == null && m.GroupId == queryParameters.GroupId && m.FilePath != null));
                 groupUsers = await _context.GroupMembers.Where(gm => gm.GroupId == queryParameters.GroupId).ToListAsync();
             }
 
-            // Additional condition to filter messages before a specific timestamp
-            query = query.Where(m => m.Timestamp < queryParameters.Before);
+            query = queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.desc
+                                                                     ? query.OrderBy(m => m.Timestamp)
+                                                                     : query.OrderByDescending(m => m.Timestamp);
 
-            // Sort the messages based on the specified sort order
-            query = queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc
-                ? query.OrderBy(m => m.Timestamp)
-                : query.OrderByDescending(m => m.Timestamp);
-
-            // Limit the number of messages retrieved based on the specified count
+            //Limit the number of messages retrieved based on the specified count
             if (queryParameters.Count > 0)
             {
                 query = query.Take(queryParameters.Count);
             }
 
-            // Sort the messages based on the specified sort order
-            if (queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc)
-            {
-                query = query.OrderBy(m => m.Timestamp);
-            }
-            else
-            {
-                query = query.OrderByDescending(m => m.Timestamp);
-            }
+            //Sort the messages based on the specified sort order
+            query = queryParameters.SortOrder == MinimalChat.Domain.Enum.SortOrder.asc
+                                                                    ? query.OrderBy(m => m.Timestamp)
+                                                                    : query.OrderByDescending(m => m.Timestamp);
 
             // Execute the query and return the conversation history
             List<Message?> messages =  await query.ToListAsync();
@@ -196,6 +190,74 @@ namespace MinmalChat.Data.Services
                                           .Select(m => _mapper.Map<Message>(m))
                                           .ToListAsync();
 
+        }
+
+        /// <summary>
+        /// Asynchronously uploads a file based on the provided information in the 'fileUploadDto.'
+        /// </summary>
+        /// <param name="fileUploadDto">Data transfer object containing file information and upload details.</param>
+        /// <returns>A task that represents the asynchronous operation, returning a string representing the uploaded file's path if successful.</returns>
+        /// <remarks>
+        /// This method is used to asynchronously upload a file and returns the file's path upon successful completion. The operation is based on the information provided in the 'fileUploadDto.'
+        /// </remarks>
+        public async Task<string> UploadFileAsync(FileUploadDto fileUploadDto)
+        {
+            try
+            {
+                if (fileUploadDto.FileData == null || fileUploadDto.FileData.Length == 0)
+                {
+                    throw new ArgumentException("File data is empty or null.");
+                }
+
+                Directory.CreateDirectory(fileUploadDto.UploadDirectory);
+
+                string uniqueFileName = Guid.NewGuid() + "_" + fileUploadDto.FileName;
+
+                string filePath = Path.Combine(fileUploadDto.UploadDirectory, uniqueFileName);
+
+                await File.WriteAllBytesAsync(filePath, fileUploadDto.FileData);
+
+                // Store the file name in the database
+                var fileEntity = new Message
+                {
+                    FilePath = uniqueFileName,
+                    SenderId = fileUploadDto.SenderId, 
+                    ReceiverId = fileUploadDto.ReceiverId,
+                    GroupId = fileUploadDto.GroupId,
+                    Timestamp = DateTime.Now,
+                };
+
+                // Assuming _dbContext is your database context
+                _context.Messages.Add(fileEntity);
+                await _context.SaveChangesAsync();
+
+                return filePath;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a message by its unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the message to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation, returning a 'Message' object when the message is successfully retrieved.</returns>
+        /// <remarks>
+        /// This method is used to asynchronously fetch a message by its unique identifier. It returns a 'Message' object when the specified message is found and retrieved.
+        /// </remarks>
+        public async Task<Message> GetMessageByIdAsync(int id)
+        {
+            try
+            {
+               Message message = await _context.Messages.Where(m => m.Id == id).FirstOrDefaultAsync();
+               return message;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
     }
