@@ -14,5 +14,6 @@ namespace MinimalChat.Domain.Models
         public string UserId { get; set; }
         public MinimalChatUser? User { get; set; }
         public bool IsAdmin { get; set; }
+        public DateTime? ChatHistoryTime { get; set; }
     }
 }

@@ -29,7 +29,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>
         ///   A task representing the asynchronous operation, with a string result indicating the outcome.
         /// </returns>
-        Task<string> AddMemberToGroupAsync(Guid groupId, string? currentUserId, List<Guid> memberIds);
+        Task<string> AddMemberToGroupAsync(Guid groupId, string? currentUserId, AddGroupMemberDto addGroupMemberDto);
 
         /// <summary>
         /// Asynchronously removes a member from a specified group.

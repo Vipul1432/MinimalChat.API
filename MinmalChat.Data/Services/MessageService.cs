@@ -144,8 +144,9 @@ namespace MinmalChat.Data.Services
             }
             else
             {
-                query = _context.Messages.Where(m => (m.ReceiverId == null && m.Content != null && m.GroupId == queryParameters.GroupId) ||
-                                          (m.ReceiverId == null && m.Content == null && m.GroupId == queryParameters.GroupId && m.FilePath != null));
+                DateTime? chatHistoryTime = _context.GroupMembers.Where(m =>m.GroupId == queryParameters.GroupId && m.UserId == currentUserId).Select(ct =>ct.ChatHistoryTime).FirstOrDefault();
+                query = _context.Messages.Where(m => (m.ReceiverId == null && m.Content != null && m.GroupId == queryParameters.GroupId && m.Timestamp >= chatHistoryTime) ||
+                                          (m.ReceiverId == null && m.Content == null && m.GroupId == queryParameters.GroupId && m.FilePath != null && m.Timestamp >= chatHistoryTime));
                 groupUsers = await _context.GroupMembers.Where(gm => gm.GroupId == queryParameters.GroupId).ToListAsync();
             }
 
@@ -169,7 +170,7 @@ namespace MinmalChat.Data.Services
             GroupMessageDto groupMessages = new GroupMessageDto()
             {
                 Messages = messages,
-                Members = groupUsers,
+                Members = groupUsers ?? null!,
             };
             return groupMessages;
         }
