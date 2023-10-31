@@ -1,4 +1,5 @@
-﻿using MinimalChat.Domain.Helpers;
+﻿using MinimalChat.Domain.Enum;
+using MinimalChat.Domain.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;

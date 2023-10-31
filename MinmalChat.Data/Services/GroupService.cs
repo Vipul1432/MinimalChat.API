@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MinimalChat.Domain.DTOs;
+using MinimalChat.Domain.Enum;
 using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
@@ -60,6 +61,7 @@ namespace MinmalChat.Data.Services
                         GroupId = addedGroup.Id,
                         UserId = memberId.ToString(),
                         IsAdmin = isAdmin,
+                        ChatHistoryTime = DateTime.Now,
                     };
 
                     await _groupMemberRepository.AddAsync(groupMember);
@@ -78,7 +80,7 @@ namespace MinmalChat.Data.Services
         /// <returns>
         ///   A task representing the asynchronous operation, with a string result indicating the outcome.
         /// </returns>
-        public async Task<string> AddMemberToGroupAsync(Guid groupId, string? currentUserId, List<Guid> memberIds)
+        public async Task<string> AddMemberToGroupAsync(Guid groupId, string? currentUserId, AddGroupMemberDto addGroupMemberDto)
         {
             // Check if the group exists
             var group = await _context.Groups.FirstOrDefaultAsync(grp => grp.Id == groupId);
@@ -96,26 +98,37 @@ namespace MinmalChat.Data.Services
 
             Guid currentUserGuid = Guid.Parse(currentUserId!);
 
-            foreach (var memberId in memberIds)
-            {
-                // Check if the member already exists in the group
-                var memberExists = await _context.GroupMembers.AnyAsync(grpmem => grpmem.GroupId == groupId && grpmem.UserId == memberId.ToString());
+            // Check if the member already exists in the group
+            var memberExists = await _context.GroupMembers.AnyAsync(grpmem => grpmem.GroupId == groupId && grpmem.UserId == addGroupMemberDto.memberId.ToString());
 
-                if (memberExists)
-                {
-                    // Handle the case where the member already exists in the group
-                    return $"Member with ID {memberId} already exists in the group";
-                }
-                var isAdmin = memberId == currentUserGuid;
-                var groupUser = new GroupMember
-                {
-                    GroupId = groupId,
-                    UserId = memberId.ToString(),
-                    IsAdmin = isAdmin,
+            if (memberExists)
+            {
+                // Handle the case where the member already exists in the group
+                return $"Member with ID {addGroupMemberDto.memberId} already exists in the group";
+            }
+            DateTime? chatHistoryTime = null;
+            if(addGroupMemberDto.HistoryOption == HistoryOption.ShowAllHistory)
+            {
+                chatHistoryTime = await _context.GroupMembers.Where(grp => grp.GroupId == groupId).Select(x => x.ChatHistoryTime).FirstOrDefaultAsync();
+            }
+            else if(addGroupMemberDto.HistoryOption == HistoryOption.ShowNumberOfDays && addGroupMemberDto.Days != null)
+            {
+                chatHistoryTime = DateTime.Now.AddDays(-(double)addGroupMemberDto.Days);
+            }
+            else if(addGroupMemberDto.HistoryOption == HistoryOption.NoHistory)
+            {
+                chatHistoryTime = DateTime.Now;
+            }
+
+            var groupUser = new GroupMember
+            {
+                GroupId = groupId,
+                UserId = addGroupMemberDto.memberId.ToString(),
+                IsAdmin = false,
+                ChatHistoryTime = chatHistoryTime ?? null,
                 };
 
                 await _groupMemberRepository.AddAsync(groupUser);
-            }
             return "Member Added Successfully!";
         }
 

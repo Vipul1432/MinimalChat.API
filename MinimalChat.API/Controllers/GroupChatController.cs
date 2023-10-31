@@ -93,14 +93,14 @@ namespace MinimalChat.API.Controllers
         ///   500 Internal Server Error if an error occurs during the operation, with details in the response.
         /// </returns>
         [HttpPost("{groupId}/add-member")]
-        public async Task<IActionResult> AddMemberToGroup(Guid groupId, [FromBody] List<Guid> memberIds)
+        public async Task<IActionResult> AddMemberToGroup(Guid groupId, [FromBody] AddGroupMemberDto addGroupMemberDto)
         {
             try
             {
                 // Get the current user's ID from the claims
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                var result = await _groupService.AddMemberToGroupAsync(groupId, currentUserId, memberIds);
+                var result = await _groupService.AddMemberToGroupAsync(groupId, currentUserId, addGroupMemberDto);
                  
                 return Ok(new ApiResponse<string>
                 {
