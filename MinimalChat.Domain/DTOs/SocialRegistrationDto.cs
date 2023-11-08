@@ -7,15 +7,10 @@ using System.Threading.Tasks;
 
 namespace MinimalChat.Domain.DTOs
 {
-    public class RegistrationDto
+    public class SocialRegistrationDto
     {
-        [EmailAddress]
         public string Email { get; set; }
-
-        [Required]
         public string Name { get; set; }
-
-        [DataType(DataType.Password)]
-        public string? Password { get; set; }
     }
+
 }

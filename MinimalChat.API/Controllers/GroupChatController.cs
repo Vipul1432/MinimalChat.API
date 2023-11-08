@@ -7,6 +7,7 @@ using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using MinmalChat.Data.Services;
+using System.Net;
 using System.Security.Claims;
 
 namespace MinimalChat.API.Controllers
@@ -37,7 +38,7 @@ namespace MinimalChat.API.Controllers
         /// </returns>
 
         [HttpPost("create-group")]
-        public async Task<IActionResult> CreateGroup([FromBody] GroupDto groupDto)
+        public async Task<IActionResult> CreateGroupAsync([FromBody] GroupDto groupDto)
         {
             try
             {
@@ -48,7 +49,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "Invalid model data",
                         Data = null,
-                        StatusCode = 400
+                        StatusCode = HttpStatusCode.BadRequest
                     });
                 }
 
@@ -56,24 +57,20 @@ namespace MinimalChat.API.Controllers
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 var addedGroup = await _groupService.CreateGroupAsync(currentUserId, groupDto);
-                return Ok(new ApiResponse<object>
+                return Ok(new ApiResponse<ResponseGroupDto>
                 {
                     Message = "Group created successfully",
-                    Data = new
-                    {
-                        Id = addedGroup.Id,
-                        Name = addedGroup.Name,
-                    },
-                    StatusCode = 200
+                    Data = addedGroup,
+                    StatusCode = HttpStatusCode.OK
                 });
             }
             catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<object>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "An error occurred while creating the group.",
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -93,7 +90,7 @@ namespace MinimalChat.API.Controllers
         ///   500 Internal Server Error if an error occurs during the operation, with details in the response.
         /// </returns>
         [HttpPost("{groupId}/add-member")]
-        public async Task<IActionResult> AddMemberToGroup(Guid groupId, [FromBody] AddGroupMemberDto addGroupMemberDto)
+        public async Task<IActionResult> AddMemberToGroupAsync(Guid groupId, [FromBody] AddGroupMemberDto addGroupMemberDto)
         {
             try
             {
@@ -106,19 +103,17 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = result,
                     Data = null,
-                    StatusCode = 200,
+                    StatusCode = HttpStatusCode.OK,
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                var response = new ApiResponse<string>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "Internal Server Error",
-                    Data = ex.Message,
-                    StatusCode = 500,
-                };
-
-                return StatusCode(500, response);
+                    Message = "An error occurred! Please try again.",
+                    Data = null,
+                    StatusCode = HttpStatusCode.InternalServerError
+                });
             }
         }
 
@@ -137,7 +132,7 @@ namespace MinimalChat.API.Controllers
         ///   500 Internal Server Error if an error occurs during the operation, with details in the response.
         /// </returns>
         [HttpPost("{groupId}/remove-member")]
-        public async Task<IActionResult> RemoveMemberFromGroup(Guid groupId, [FromQuery] Guid memberId)
+        public async Task<IActionResult> RemoveMemberFromGroupAsync(Guid groupId, [FromQuery] Guid memberId)
         {
             try
             {
@@ -150,19 +145,17 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = result,
                     Data = null,
-                    StatusCode = 200,
+                    StatusCode = HttpStatusCode.OK,
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                var response = new ApiResponse<string>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "Internal Server Error",
-                    Data = ex.Message,
-                    StatusCode = 500,
-                };
-
-                return StatusCode(500, response);
+                    Message = "An error occurred! Please try again.",
+                    Data = null,
+                    StatusCode = HttpStatusCode.InternalServerError
+                });
             }
         }
 
@@ -182,7 +175,7 @@ namespace MinimalChat.API.Controllers
         /// If an error occurs during the operation, returns a 500 Internal Server Error response.
         /// </returns>
         [HttpPut("{groupId}/edit-group-name")]
-        public async Task<IActionResult> EditGroupName(Guid groupId, [FromQuery] string newName)
+        public async Task<IActionResult> EditGroupNameAsync(Guid groupId, [FromQuery] string newName)
         {
             try
             {
@@ -192,16 +185,16 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = updatedGroupResult,
                     Data = null,
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 });
             }
             catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<string>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "An error occurred while updating the group name.",
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -221,7 +214,7 @@ namespace MinimalChat.API.Controllers
         /// - If the operation fails, a 500 Internal Server Error response with an error message.
         /// </returns>
         [HttpPut("make-member-admin")]
-        public async Task<IActionResult> MakeMemberAdmin([FromQuery] Guid groupId, [FromQuery] Guid memberId)
+        public async Task<IActionResult> MakeMemberAdminAsync([FromQuery] Guid groupId, [FromQuery] Guid memberId)
         {
             try
             {
@@ -234,16 +227,16 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = result,
                     Data = null,
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 });
             }
             catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<string>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "An error occurred while making the member an admin.",
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -263,7 +256,7 @@ namespace MinimalChat.API.Controllers
         /// or a 500 Internal Server Error response if an error occurs during deletion.
         /// </returns>
         [HttpDelete("{groupId}/delete-group")]
-        public async Task<IActionResult> DeleteGroup(Guid groupId)
+        public async Task<IActionResult> DeleteGroupAsync(Guid groupId)
         {
             try
             {
@@ -276,20 +269,20 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = deleteGroupResult,
                     Data = null,
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 });
             }
             catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<string>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "An error occurred while deleting the group.",
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
 
-        #endregion Delete Groupqa
+        #endregion Delete Group
     }
 }

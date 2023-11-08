@@ -19,7 +19,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>
         /// An ApiResponse containing the registration result, including a message and status code.
         /// </returns>
-        Task<ApiResponse<RegistrationDto>> RegisterAsync(Registration model);
+        Task<ApiResponse<SocialRegistrationDto>> RegisterAsync(RegistrationDto model);
 
         /// <summary>
         /// Retrieves a user by their email address asynchronously.
@@ -50,7 +50,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <remarks>
         /// This method asynchronously fetches a list of all registered users in the system.
         /// </remarks>
-        Task<List<MinimalChatUser>> GetAllUsersAsync(bool isOnlyUserList, string currentUserId);
+        Task<List<MinimalChatUser>> GetAllUsersWithGroupsAsync(bool isOnlyUserList, string currentUserId);
 
         /// <summary>
         /// Checks if a user with the specified user ID exists in the database.
@@ -76,7 +76,7 @@ namespace MinimalChat.Domain.Interfaces
         /// including user login information (JWT token, refresh token) if successful,
         /// or an error message if login fails due to incorrect credentials.
         /// </returns>
-        Task<ApiResponse<LoginDto>> LoginAsync(Login model);
+        Task<ApiResponse<LoginResponseDto>> LoginAsync(LoginDto model);
 
         /// <summary>
         /// Asynchronously handles user login via Google authentication, generates JWT and refresh tokens upon successful login,
@@ -89,7 +89,7 @@ namespace MinimalChat.Domain.Interfaces
         /// including user login information (JWT token, refresh token) if successful,
         /// or an error message if login fails.
         /// </returns>
-        Task<ApiResponse<LoginDto>> GoogleLoginAsync(string email, string name);
+        Task<ApiResponse<LoginResponseDto>> GoogleLoginAsync(string email, string name);
 
         /// <summary>
         /// Asynchronously generates a new access token and refresh token for a user based on their expired access token and refresh token.

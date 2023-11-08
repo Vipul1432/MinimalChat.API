@@ -12,6 +12,7 @@ using MinmalChat.Data.Context;
 using MinmalChat.Data.Helpers;
 using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,15 +23,15 @@ namespace MinmalChat.Data.Services
     {
         private readonly UserManager<MinimalChatUser> _userManager;
         private readonly IConfiguration _configuration;
-        private readonly MinimalChatDbContext _context;
+        private readonly IRepository<Group> _repository;
         private readonly IMapper _mapper;
 
-        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration, MinimalChatDbContext context, IMapper mapper)
+        public UserService(UserManager<MinimalChatUser> userManager, IConfiguration configuration, IRepository<Group> repository, IMapper mapper)
         {
             _userManager = userManager;
             _configuration = configuration;
-            _context = context;
             _mapper = mapper;
+            _repository = repository;
         }
 
         /// <summary>
@@ -40,17 +41,17 @@ namespace MinmalChat.Data.Services
         /// <returns>
         /// An ApiResponse containing the registration result, including a message and status code.
         /// </returns>
-        public async Task<ApiResponse<RegistrationDto>> RegisterAsync(Registration model)
+        public async Task<ApiResponse<SocialRegistrationDto>> RegisterAsync(RegistrationDto model)
         {
             // Check if a user with the same email already exists
             var existingUser = await _userManager.FindByEmailAsync(model.Email);
             if (existingUser != null)
             {
-                return new ApiResponse<RegistrationDto>
+                return new ApiResponse<SocialRegistrationDto>
                 {
                     Message = "Registration failed. Email is already registered.",
                     Data = null,
-                    StatusCode = 409 // Conflict
+                    StatusCode = HttpStatusCode.Conflict
                 };
             }
 
@@ -72,23 +73,23 @@ namespace MinmalChat.Data.Services
 
             if (result.Succeeded)
             {
-                return new ApiResponse<RegistrationDto>
+                return new ApiResponse<SocialRegistrationDto>
                 {
                     Message = "Registration successful",
-                    Data = new RegistrationDto
+                    Data = new SocialRegistrationDto
                     {
                         Name = model.Name,
                         Email = user.Email
                     },
-                    StatusCode = 200 // Success
+                    StatusCode = HttpStatusCode.OK
                 };
             }
 
-            return new ApiResponse<RegistrationDto>
+            return new ApiResponse<SocialRegistrationDto>
             {
                 Message = "Registration failed due to validation errors.",
                 Data = null,
-                StatusCode = 400 // BadRequest
+                StatusCode = HttpStatusCode.BadRequest
             };
         }
 
@@ -102,7 +103,7 @@ namespace MinmalChat.Data.Services
         /// including user login information (JWT token, refresh token) if successful,
         /// or an error message if login fails due to incorrect credentials.
         /// </returns>
-        public async Task<ApiResponse<LoginDto>> LoginAsync(Login model)
+        public async Task<ApiResponse<LoginResponseDto>> LoginAsync(LoginDto model)
         {
             var user = await _userManager.FindByNameAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
@@ -113,25 +114,25 @@ namespace MinmalChat.Data.Services
                 _ = int.TryParse(_configuration["JWT:RefreshTokenValidityInDays"], out int refreshTokenValidityInDays);
                 user.RefreshTokenExpiryTime = DateTime.Now.AddDays(refreshTokenValidityInDays);
                 await _userManager.UpdateAsync(user);
-                return new ApiResponse<LoginDto>
+                return new ApiResponse<LoginResponseDto>
                 {
                     Message = "Login successfully!",
-                    Data = new LoginDto
+                    Data = new LoginResponseDto
                     {
                         Email = model.Email,
                         JwtToken = token,
                         RefreshToken = refreshToken,
                     },
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 };
             }
             else
             {
-                return new ApiResponse<LoginDto>
+                return new ApiResponse<LoginResponseDto>
                 {
                     Message = "Login failed due to incorrect credentials.",
                     Data = null,
-                    StatusCode = 401
+                    StatusCode = HttpStatusCode.Unauthorized
                 };
             }
         }
@@ -147,7 +148,7 @@ namespace MinmalChat.Data.Services
         /// including user login information (JWT token, refresh token) if successful,
         /// or an error message if login fails.
         /// </returns>
-        public async Task<ApiResponse<LoginDto>> GoogleLoginAsync(string email, string name)
+        public async Task<ApiResponse<LoginResponseDto>> GoogleLoginAsync(string email, string name)
         {
             var user = await _userManager.FindByEmailAsync(email);
 
@@ -159,21 +160,21 @@ namespace MinmalChat.Data.Services
                 _ = int.TryParse(_configuration["JWT:RefreshTokenValidityInDays"], out int refreshTokenValidityInDays);
                 user.RefreshTokenExpiryTime = DateTime.Now.AddDays(refreshTokenValidityInDays);
                 await _userManager.UpdateAsync(user);
-                return new ApiResponse<LoginDto>
+                return new ApiResponse<LoginResponseDto>
                 {
                     Message = "Login successfully!",
-                    Data = new LoginDto
+                    Data = new LoginResponseDto
                     {
                         Email = email,
                         JwtToken = token,
                         RefreshToken = refreshToken,
                     },
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK  
                 };
             }
             else
             {
-                Registration googleUser = new Registration()
+                RegistrationDto googleUser = new RegistrationDto()
                 {
                     Email = email,
                     Name = name,
@@ -187,16 +188,16 @@ namespace MinmalChat.Data.Services
                 _ = int.TryParse(_configuration["JWT:RefreshTokenValidityInDays"], out int refreshTokenValidityInDays);
                 registedUser.RefreshTokenExpiryTime = DateTime.Now.AddDays(refreshTokenValidityInDays);
                 await _userManager.UpdateAsync(registedUser);
-                return new ApiResponse<LoginDto>
+                return new ApiResponse<LoginResponseDto>
                 {
                     Message = "Login successfully!",
-                    Data = new LoginDto
+                    Data = new LoginResponseDto
                     {
                         Email = email,
                         JwtToken = token,
                         RefreshToken = refreshToken,
                     },
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 };
             }
         }
@@ -256,13 +257,13 @@ namespace MinmalChat.Data.Services
         /// <remarks>
         /// This method asynchronously fetches a list of all registered users in the system.
         /// </remarks>
-        public async Task<List<MinimalChatUser>> GetAllUsersAsync(bool isOnlyUserList, string currentUserId)
+        public async Task<List<MinimalChatUser>> GetAllUsersWithGroupsAsync(bool isOnlyUserList, string currentUserId)
         {
             var users = await _userManager.Users.Where(user => user.Id != currentUserId).ToListAsync();
             
             if (!isOnlyUserList)
             {
-                var userGroups = await _context.Groups.Include(x => x.Members).Where(g => g.Members!.Any(m => m.UserId == currentUserId)).ToListAsync();
+                var userGroups = await _repository.GetUserGroupsByUserIdAsync(currentUserId);
 
                 var usersFromGroups = _mapper.Map<List<MinimalChatUser>>(userGroups);
 
@@ -317,7 +318,7 @@ namespace MinmalChat.Data.Services
                 {
                     Message = "Invalid access token or refresh token.",
                     Data = null,
-                    StatusCode = 401
+                    StatusCode = HttpStatusCode.Unauthorized
                 };
             }
             var username = principal.FindFirst(ClaimTypes.NameIdentifier)!;
@@ -330,7 +331,7 @@ namespace MinmalChat.Data.Services
                 {
                     Message = "Invalid access token or refresh token.",
                     Data = null,
-                    StatusCode = 401
+                    StatusCode = HttpStatusCode.Unauthorized
                 };
             }
 
@@ -347,7 +348,7 @@ namespace MinmalChat.Data.Services
                     AccessToken = newAccessToken,
                     RefreshToken = newRefreshToken,
                 },
-                StatusCode = 200
+                StatusCode = HttpStatusCode.OK
             };
         }
 

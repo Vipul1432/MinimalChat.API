@@ -5,6 +5,7 @@ using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using MinmalChat.Data.Services;
+using System.Net;
 
 namespace MinimalChat.API.Controllers
 {
@@ -33,7 +34,7 @@ namespace MinimalChat.API.Controllers
         /// - 500 Internal Server Error: An unexpected error occurred.
         /// </returns>
         [HttpGet("log")]
-        public async Task<IActionResult> GetLogs([FromQuery] DateTime? startTime = null, [FromQuery] DateTime? endTime = null)
+        public async Task<IActionResult> GetLogsAsync([FromQuery] DateTime? startTime = null, [FromQuery] DateTime? endTime = null)
         {
             try
            {
@@ -58,7 +59,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "Log list received successfully!",
                         Data = logs,
-                        StatusCode = 200
+                        StatusCode = HttpStatusCode.OK
                     });
                 }
                 else
@@ -68,17 +69,17 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "No logs found.",
                         Data = null, 
-                        StatusCode = 400
+                        StatusCode = HttpStatusCode.NotFound
                     });                
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<RequestLog>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }

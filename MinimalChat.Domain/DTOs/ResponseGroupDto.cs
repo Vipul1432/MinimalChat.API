@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace MinimalChat.Domain.DTOs
 {
-    public class GroupMessageDto
+    public class ResponseGroupDto
     {
-        public List<ResponseMessageDto?> Messages { get; set; }
-        public List<GroupMemberDto?> Members { get; set; }
+        public Guid Id { get; set; }
+        public string Name { get; set; }
     }
 }

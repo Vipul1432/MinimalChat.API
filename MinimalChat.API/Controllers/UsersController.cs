@@ -9,6 +9,7 @@ using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 
 namespace MinimalChat.API.Controllers
@@ -40,21 +41,39 @@ namespace MinimalChat.API.Controllers
         /// - 409 Conflict if the email is already registered.
         /// </returns>
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] Registration model)
+        public async Task<IActionResult> RegisterAsync([FromBody] RegistrationDto model)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(new ApiResponse<RegistrationDto>
+                if (!ModelState.IsValid)
                 {
-                    Message = "Registration failed due to validation errors.",
-                    Data = null,
-                    StatusCode = 400
+                    return BadRequest(new ApiResponse<SocialRegistrationDto>
+                    {
+                        Message = "Registration failed due to validation errors.",
+                        Data = null,
+                        StatusCode = HttpStatusCode.BadRequest
+                    });
+                }
+
+                var registrationResult = await _userService.RegisterAsync(model);
+
+                return Ok(new ApiResponse<SocialRegistrationDto>
+                {
+                    Message = registrationResult.Message,
+                    Data = registrationResult.Data,
+                    StatusCode = registrationResult.StatusCode
                 });
             }
-
-            var registrationResult = await _userService.RegisterAsync(model);
-
-            return Ok(registrationResult);
+            catch (Exception)
+            {
+                // Handle the exception, log it, and return an error response
+                return StatusCode((int)HttpStatusCode.InternalServerError, new ApiResponse<object>
+                {
+                    Message = "An error occurred during registration! Try Again.",
+                    Data = null,
+                    StatusCode = HttpStatusCode.InternalServerError
+                });
+            }
         }
 
         #endregion User Registration
@@ -71,35 +90,35 @@ namespace MinimalChat.API.Controllers
         /// - 401 Unauthorized if login fails due to incorrect credentials.
         /// </returns>  
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] Login model)
+        public async Task<IActionResult> LoginAsync([FromBody] LoginDto model)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<LoginDto>
+                    return BadRequest(new ApiResponse<LoginResponseDto>
                     {
                         Message = "Login failed due to validation errors.",
                         Data = null,
-                        StatusCode = 400
+                        StatusCode = HttpStatusCode.BadRequest
                     });
                 }
 
                 var LoginResult = await _userService.LoginAsync(model);
-                return StatusCode(LoginResult.StatusCode, new ApiResponse<LoginDto>
+                return StatusCode((int)LoginResult.StatusCode, new ApiResponse<LoginResponseDto>
                 {
                     Message = LoginResult.Message,
                     Data = LoginResult.Data,
                     StatusCode = LoginResult.StatusCode
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<LoginDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -120,7 +139,7 @@ namespace MinimalChat.API.Controllers
         /// and either logs in the user or registers a new user if not found.
         /// </remarks>
         [HttpPost("googleLogin")]
-        public async Task<IActionResult> LoginWithGoogle([FromBody] string credential)
+        public async Task<IActionResult> LoginWithGoogleAsync([FromBody] string credential)
         {
             var settings = new GoogleJsonWebSignature.ValidationSettings()
             {
@@ -132,7 +151,7 @@ namespace MinimalChat.API.Controllers
                 var payload = await GoogleJsonWebSignature.ValidateAsync(credential, settings);
 
                 var GoogleLoginResult = await _userService.GoogleLoginAsync(payload.Email, payload.Name);
-                return StatusCode(GoogleLoginResult.StatusCode, new ApiResponse<LoginDto>
+                return StatusCode((int)GoogleLoginResult.StatusCode, new ApiResponse<LoginResponseDto>
                 {
                     Message = GoogleLoginResult.Message,
                     Data = GoogleLoginResult.Data,
@@ -142,11 +161,11 @@ namespace MinimalChat.API.Controllers
             catch (Exception)
             {
                 // Handle any exception that occurs during Google validation
-                return StatusCode(500, new ApiResponse<LoginDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = "Error validating Google credentials",
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500 // Internal Server Error
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -165,14 +184,14 @@ namespace MinimalChat.API.Controllers
         /// </remarks>
         [HttpGet("users")]
         [Authorize]
-        public async Task<IActionResult> GetAllUsers([FromQuery] bool isOnlyUserList)
+        public async Task<IActionResult> GetAllUsersWithGroupsAsync([FromQuery] bool isOnlyUserList)
         {
             try
             {
                 // fetch current UserId
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                var users = await _userService.GetAllUsersAsync(isOnlyUserList, currentUserId);
+                var users = await _userService.GetAllUsersWithGroupsAsync(isOnlyUserList, currentUserId);
 
                 //Map MinimalChatUser to UserDto
                 var usersList = _mapper.Map<List<UserDto>>(users);
@@ -181,16 +200,16 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = "User list retrieved successfully",
                     Data = usersList,
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<UserDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -208,7 +227,7 @@ namespace MinimalChat.API.Controllers
         /// including a new access token if successful or an error message if unsuccessful.
         /// </returns>
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken(TokenModel tokenModel)
+        public async Task<IActionResult> RefreshTokenAsync(TokenModel tokenModel)
         
         {
             if (tokenModel is null)
@@ -217,7 +236,7 @@ namespace MinimalChat.API.Controllers
             }
 
             var RefreshTokenResult = await _userService.GetRefreshTokenAsync(tokenModel);
-            return StatusCode(RefreshTokenResult.StatusCode, new ApiResponse<TokenModel>
+            return StatusCode((int)RefreshTokenResult.StatusCode, new ApiResponse<TokenModel>
             {
                 Message = RefreshTokenResult.Message,
                 Data = RefreshTokenResult.Data,

@@ -13,6 +13,7 @@ using MinimalChat.Domain.Models;
 using MinmalChat.Data.Helpers;
 using MinmalChat.Data.Services;
 using System.Globalization;
+using System.Net;
 using System.Net.Mime;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -47,7 +48,7 @@ namespace MinimalChat.API.Controllers
         /// <param name="model">The message data to be sent.</param>
         /// <returns>An IActionResult representing the result of the message sending operation.</returns>
         [HttpPost("messages")]
-        public async Task<IActionResult> SendMessage([FromBody] MessageDto model)
+        public async Task<IActionResult> SendMessageAsync([FromBody] MessageDto model)
         {
             try
             {
@@ -74,23 +75,23 @@ namespace MinimalChat.API.Controllers
                 var result = await _messageService.SendMessageAsync(message);
 
                 // Broadcast the message via SignalR
-                await _hubContext.Clients.All.SendAsync("ReceiveMessage", message.SenderId, message.Content);
+                await _hubContext.Clients.All.SendAsync("ReceiveMessage", message.ReceiverId, message.Content);
 
 
                 return Ok(new ApiResponse<GetMessagesDto>
                 {
                     Message = "Message sent successfully",
                     Data = null,
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK,
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new ApiResponse<GetMessagesDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -112,7 +113,7 @@ namespace MinimalChat.API.Controllers
         /// 500 Internal Server Error if an unexpected error occurs.
         /// </returns>
         [HttpPut("messages/{messageId}")]
-        public async Task<IActionResult> EditMessage(int messageId, [FromBody] EditMessageDto model)
+        public async Task<IActionResult> EditMessageAsync(int messageId, [FromBody] EditMessageDto model)
         {
             try
             {
@@ -122,7 +123,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "Message editing failed due to validation errors.",
                         Data = null,
-                        StatusCode = 404
+                        StatusCode = HttpStatusCode.BadRequest
                     });
                 }
                 // Get the current user's ID from the JWT token
@@ -130,23 +131,28 @@ namespace MinimalChat.API.Controllers
                 // Edit the message in the repository
                 var edited = await _messageService.EditMessageAsync(messageId, model.Content, currentUserId!);
 
-                // Broadcast the message via SignalR
-                await _hubContext.Clients.All.SendAsync("ReceiveMessage", currentUserId, model.Content);
+                if(edited.StatusCode == HttpStatusCode.OK)
+                {
+                    string ReceiverId = edited.Data.ReceiverId;
 
-                return StatusCode(edited.StatusCode, new ApiResponse<GetMessagesDto>
+                    // Broadcast the message via SignalR
+                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", ReceiverId, model.Content);
+                }
+                
+                return StatusCode((int)edited.StatusCode, new ApiResponse<GetMessagesDto>
                 {
                     Message = edited.Message,
                     Data = null,
                     StatusCode = edited.StatusCode
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<GetMessagesDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -166,7 +172,7 @@ namespace MinimalChat.API.Controllers
         /// 500 Internal Server Error if an unexpected error occurs.
         /// </returns>
         [HttpDelete("messages/{messageId}")]
-        public async Task<IActionResult> DeleteMessage(int messageId)
+        public async Task<IActionResult> DeleteMessageAsync(int messageId)
         {
             try
             {
@@ -175,23 +181,28 @@ namespace MinimalChat.API.Controllers
                 // Delete the message in the repository
                 var deleted = await _messageService.DeleteMessageAsync(messageId, currentUserId!);
 
-                // Broadcast the message via SignalR
-                await _hubContext.Clients.All.SendAsync("ReceiveMessage", messageId, currentUserId);
+                if(deleted.StatusCode == HttpStatusCode.OK)
+                {
+                    string ReceiverId = deleted.Data.ReceiverId;
 
-                return StatusCode(deleted.StatusCode, new ApiResponse<GetMessagesDto>
+                    // Broadcast the message via SignalR
+                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", ReceiverId, messageId);
+                }
+
+                return StatusCode((int)deleted.StatusCode, new ApiResponse<GetMessagesDto>
                 {
                     Message = deleted.Message,
                     Data = null,
                     StatusCode = deleted.StatusCode
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<GetMessagesDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -211,7 +222,7 @@ namespace MinimalChat.API.Controllers
         /// 500 Internal Server Error if an unexpected error occurs.
         /// </returns>
         [HttpGet("messages")]
-        public async Task<IActionResult> GetConversationHistory([FromQuery] ConversationHistoryDto queryParameters)
+        public async Task<IActionResult> GetConversationHistoryAsync([FromQuery] ConversationHistoryDto queryParameters)
         {
             try
             {
@@ -222,7 +233,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "Invalid request parameters.",
                         Data = null,
-                        StatusCode = 400
+                        StatusCode = HttpStatusCode.BadRequest
                     });
                 }
 
@@ -235,7 +246,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "Unauthorized access",
                         Data = null,
-                        StatusCode = 401
+                        StatusCode = HttpStatusCode.Unauthorized
                     });
                 }
 
@@ -274,7 +285,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "No more conversation found.",
                         Data = groupMemberDtos ?? null,
-                        StatusCode = 200
+                        StatusCode = HttpStatusCode.OK
                     });
                 }
 
@@ -308,16 +319,16 @@ namespace MinimalChat.API.Controllers
                 {
                     Message = "Conversation history retrieved successfully",
                     Data = messageDtos,
-                    StatusCode = 200
+                    StatusCode = HttpStatusCode.OK
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<GetMessagesDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.StackTrace,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -336,7 +347,7 @@ namespace MinimalChat.API.Controllers
         /// If successful, returns a list of messages matching the keyword.
         /// </returns>
         [HttpGet("conversation/search")]
-        public async Task<IActionResult> SearchConversations([FromQuery] string query)
+        public async Task<IActionResult> SearchConversationsAsync([FromQuery] string query)
         {
             try
             {
@@ -349,7 +360,7 @@ namespace MinimalChat.API.Controllers
                     {
                         Message = "Unauthorized access",
                         Data = null,
-                        StatusCode = 401
+                        StatusCode = HttpStatusCode.Unauthorized
                     });
                 }
 
@@ -358,27 +369,27 @@ namespace MinimalChat.API.Controllers
 
                 if (conversations == null || conversations.Count <= 0)
                 {
-                    return BadRequest(new ApiResponse<Message>
+                    return NotFound(new ApiResponse<Message>
                     {
                         Message = "No message is found with this keyword",
                         Data = null,
-                        StatusCode = 200
+                        StatusCode = HttpStatusCode.NotFound
                     });
                 }
                 // Map Mesage to MessageDto
-                var messageDtos = _mapper.Map<List<MessageDto>>(conversations);
+                var messageDtos = _mapper.Map<List<ResponseMessageDto>>(conversations);
                 return Ok(new
                 {
                     messages = messageDtos
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<Message>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -399,7 +410,7 @@ namespace MinimalChat.API.Controllers
         /// It uses SignalR to broadcast the uploaded file's information to all connected clients.
         /// </remarks>
         [HttpPost("messages/upload/{receiverId}")]
-        public async Task<IActionResult> UploadFile(string receiverId, IFormFile file)
+        public async Task<IActionResult> UploadFileAsync(string receiverId, IFormFile file)
         {
             try
             {
@@ -442,7 +453,7 @@ namespace MinimalChat.API.Controllers
                     var uploadedFilePath = await _messageService.UploadFileAsync(fileUploadDto);
 
                     // Broadcast the message via SignalR
-                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", fileUploadDto.SenderId, file.FileName);
+                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", fileUploadDto.ReceiverId, file.FileName);
 
                     if (!string.IsNullOrEmpty(uploadedFilePath))
                     {
@@ -458,13 +469,13 @@ namespace MinimalChat.API.Controllers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new ApiResponse<GetMessagesDto>
+                return new ObjectResult(new ApiResponse<Object>
                 {
-                    Message = ex.Message,
+                    Message = "An error occurred! Please try again.",
                     Data = null,
-                    StatusCode = 500
+                    StatusCode = HttpStatusCode.InternalServerError
                 });
             }
         }
@@ -484,9 +495,9 @@ namespace MinimalChat.API.Controllers
         /// It sets the appropriate content type and response headers to trigger a download prompt in the client's browser.
         /// </remarks>
         [HttpGet("download/{messageId}")]
-        public async Task<IActionResult> DownloadFile(int messageId)
+        public async Task<IActionResult> DownloadFileAsync(int messageId)
         {
-            Message message = await _messageService.GetMessageByIdAsync(messageId);
+            var message = await _messageService.GetMessageByIdAsync(messageId);
             string storedfileName = message.FilePath!;
             var filePath = Path.Combine(_applicationSettings.UploadDirectory, storedfileName);
 
