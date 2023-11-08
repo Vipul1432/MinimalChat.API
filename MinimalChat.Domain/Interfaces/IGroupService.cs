@@ -18,7 +18,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>
         ///   A task representing the asynchronous operation, with the created Group object.
         /// </returns>
-        Task<Group> CreateGroupAsync(string? currentUserId, GroupDto groupDto);
+        Task<ResponseGroupDto> CreateGroupAsync(string? currentUserId, GroupDto groupDto);
 
         /// <summary>
         /// Asynchronously adds members to a specified group.

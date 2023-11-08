@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MinimalChat.Domain.Interfaces;
+using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
 using System;
 using System.Collections.Generic;
@@ -75,6 +76,69 @@ namespace MinmalChat.Data.Repository
             _context.Set<TEntity>().Remove(entity);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a list of groups associated with a user identified by their user ID.
+        /// </summary>
+        /// <param name="currentUserId">The user's unique identifier.</param>
+        /// <returns>A list of <see cref="Group"/> objects representing the user's groups.</returns>
+        public async Task<List<Group>> GetUserGroupsByUserIdAsync(string currentUserId)
+        {
+            return await _context.Groups.Include(x => x.Members).Where(g => g.Members.Any(m => m.UserId == currentUserId)).ToListAsync();
+        }
+
+        /// <summary>
+        /// Asynchronously checks if a user is a member of a specific group.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group.</param>
+        /// <param name="memberId">The unique identifier of the user to check.</param>
+        /// <returns>A <see cref="GroupMember"/> entity if the user is a member, or <c>null</c> if not part of the group.</returns>
+        public async Task<GroupMember> MemberExistsInGroupAsync(Guid groupId, string memberId)
+        {
+            return await _context.Set<GroupMember>().FirstOrDefaultAsync(grpmem => grpmem.GroupId == groupId && grpmem.UserId == memberId);
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a <see cref="GroupMember"/> entity based on the provided member ID.
+        /// </summary>
+        /// <param name="memberId">The unique identifier of the group member.</param>
+        /// <returns>The <see cref="GroupMember"/> entity representing the specified group member.</returns>
+        public async Task<GroupMember> GetGroupMemberByIdAsync(string memberId)
+        {
+            return await _context.Set<GroupMember>().FirstOrDefaultAsync(grpmem => grpmem.UserId == memberId);
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a <see cref="Group"/> entity based on its unique identifier.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group.</param>
+        /// <returns>The <see cref="Group"/> entity representing the specified group.</returns>
+        public async Task<Group> GetGroupByIdAsync(Guid groupId)
+        {
+            return await _context.Set<Group>().FirstOrDefaultAsync(grp => grp.Id == groupId);
+        }
+
+        /// <summary>
+        /// Asynchronously deletes the provided entity from the database.
+        /// </summary>
+        /// <param name="entity">The entity to be deleted.</param>
+        /// <returns>A boolean indicating whether the operation was successful.</returns>
+        public async Task<bool> DeleteAsync(TEntity entity)
+        {
+            _context.Set<TEntity>().Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Asynchronously fetches the chat history timestamp for a group based on its unique identifier.
+        /// </summary>
+        /// <param name="groupId">The unique identifier of the group.</param>
+        /// <returns>A nullable <see cref="DateTime"/> representing the chat history time if available, or <c>null</c> if not found.</returns>
+        public async Task<DateTime?> GetChatHistoryTimeAsync(Guid groupId)
+        {
+            return await _context.Set<GroupMember>().Where(grp => grp.GroupId == groupId).Select(x => x.ChatHistoryTime).FirstOrDefaultAsync();
         }
     }
 

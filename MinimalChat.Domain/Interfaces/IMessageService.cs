@@ -25,7 +25,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <param name="updatedContent">The updated content for the message.</param>
         /// <param name="currentUserId">The ID of the current user editing the message.</param>
         /// <returns>An ApiResponse containing the result of the edit operation.</returns>
-        Task<ApiResponse<Message>> EditMessageAsync(int messageId, string updatedContent, string currentUserId);
+        Task<ApiResponse<ResponseMessageDto>> EditMessageAsync(int messageId, string updatedContent, string currentUserId);
 
         /// <summary>
         /// Asynchronously deletes a chat message with the specified ID.
@@ -33,7 +33,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <param name="messageId">The ID of the message to delete.</param>
         /// <param name="currentUserId">The ID of the current user deleting the message.</param>
         /// <returns>An ApiResponse containing the result of the delete operation.</returns>
-        Task<ApiResponse<Message>> DeleteMessageAsync(int messageId, string currentUserId);
+        Task<ApiResponse<ResponseMessageDto>> DeleteMessageAsync(int messageId, string currentUserId);
 
         /// <summary>
         /// Retrieves a conversation history between two users based on specified query parameters.
@@ -52,7 +52,7 @@ namespace MinimalChat.Domain.Interfaces
         /// <returns>
         /// A list of messages matching the keyword within conversations.
         /// </returns>
-        Task<List<Message>> SearchConversationsAsync(string query, string currentUserId);
+        Task<List<ResponseMessageDto>> SearchConversationsAsync(string query, string currentUserId);
 
         /// <summary>
         /// Asynchronously uploads a file based on the provided information in the 'fileUploadDto.'
@@ -72,6 +72,6 @@ namespace MinimalChat.Domain.Interfaces
         /// <remarks>
         /// This method is used to asynchronously fetch a message by its unique identifier. It returns a 'Message' object when the specified message is found and retrieved.
         /// </remarks>
-        Task<Message> GetMessageByIdAsync(int id);
+        Task<ResponseMessageDto> GetMessageByIdAsync(int id);
     }
 }

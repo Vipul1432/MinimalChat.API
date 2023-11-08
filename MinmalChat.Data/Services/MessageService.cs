@@ -7,6 +7,7 @@ using MinimalChat.Domain.Interfaces;
 using MinimalChat.Domain.Models;
 using MinmalChat.Data.Context;
 using MinmalChat.Data.Helpers;
+using System.Net;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MinmalChat.Data.Services
@@ -45,28 +46,28 @@ namespace MinmalChat.Data.Services
         /// <param name="updatedContent">The updated content for the message.</param>
         /// <param name="currentUserId">The ID of the current user editing the message.</param>
         /// <returns>An ApiResponse containing the result of the edit operation.</returns>
-        public async Task<ApiResponse<Message>> EditMessageAsync(int messageId, string updatedContent, string currentUserId)
+        public async Task<ApiResponse<ResponseMessageDto>> EditMessageAsync(int messageId, string updatedContent, string currentUserId)
         {
             var message = await _messageRepository.GetByIdAsync(messageId);
 
             if (message == null)
             {
-                return new ApiResponse<Message>
+                return new ApiResponse<ResponseMessageDto>
                 {
                     Message = "Message not found.",
                     Data = null,
-                    StatusCode = 404
+                    StatusCode = HttpStatusCode.NotFound,
                 };
             }
 
             // Check if the user is the sender of the message
             if (message.SenderId != currentUserId)
             {
-                return new ApiResponse<Message>
+                return new ApiResponse<ResponseMessageDto>
                 {
                     Message = "Unauthorized access.",
                     Data = null,
-                    StatusCode = 401
+                    StatusCode = HttpStatusCode.Unauthorized
                 };
             }
 
@@ -74,11 +75,11 @@ namespace MinmalChat.Data.Services
             message.Content = updatedContent;
             await _messageRepository.UpdateAsync(message);
 
-            return new ApiResponse<Message>
+            return new ApiResponse<ResponseMessageDto>
             {
                 Message = "Message edited successfully",
-                Data = null,
-                StatusCode = 200
+                Data = _mapper.Map<Message, ResponseMessageDto>(message),
+                StatusCode = HttpStatusCode.OK
             };
         }
 
@@ -88,38 +89,38 @@ namespace MinmalChat.Data.Services
         /// <param name="messageId">The ID of the message to delete.</param>
         /// <param name="currentUserId">The ID of the current user deleting the message.</param>
         /// <returns>An ApiResponse containing the result of the delete operation.</returns>
-        public async Task<ApiResponse<Message>> DeleteMessageAsync(int messageId, string currentUserId)
+        public async Task<ApiResponse<ResponseMessageDto>> DeleteMessageAsync(int messageId, string currentUserId)
         {
             var message = await _messageRepository.GetByIdAsync(messageId);
 
             if (message == null)
             {
-                return new ApiResponse<Message>
+                return new ApiResponse<ResponseMessageDto>
                 {
                     Message = "Message not found",
                     Data = null,
-                    StatusCode = 404
+                    StatusCode = HttpStatusCode.NotFound
                 };
             }
 
             // Check if the user is the sender of the message
             if (message.SenderId != currentUserId)
             {
-                return new ApiResponse<Message>
+                return new ApiResponse<ResponseMessageDto>
                 {
                     Message = "Unauthorized access",
                     Data = null,
-                    StatusCode = 401
+                    StatusCode = HttpStatusCode.Unauthorized
                 };
             }
 
             await _messageRepository.DeleteAsync(messageId);
 
-            return new ApiResponse<Message>
+            return new ApiResponse<ResponseMessageDto>
             {
                 Message = "Message deleted successfully",
-                Data = null,
-                StatusCode = 200
+                Data = _mapper.Map<Message, ResponseMessageDto>(message),
+                StatusCode = HttpStatusCode.OK
             };
         }
 
@@ -169,8 +170,8 @@ namespace MinmalChat.Data.Services
             List<Message?> messages =  await query.ToListAsync();
             GroupMessageDto groupMessages = new GroupMessageDto()
             {
-                Messages = messages,
-                Members = groupUsers ?? null!,
+                Messages = _mapper.Map<List<ResponseMessageDto>>(messages)!,
+                Members = _mapper.Map<List<GroupMemberDto>>(groupUsers)!,
             };
             return groupMessages;
         }
@@ -184,13 +185,10 @@ namespace MinmalChat.Data.Services
         /// <returns>
         /// A list of messages matching the keyword within conversations.
         /// </returns>
-        public async Task<List<Message>> SearchConversationsAsync(string query, string currentUserId)
+        public async Task<List<ResponseMessageDto>> SearchConversationsAsync(string query, string currentUserId)
         {
-            return await _context.Messages.Where(m => (m.SenderId == currentUserId) || (m.ReceiverId == currentUserId))
-                                          .Where(m => m.Content.Contains(query))
-                                          .Select(m => _mapper.Map<Message>(m))
-                                          .ToListAsync();
-
+            var messages = await _context.Messages.Where(m => (m.SenderId == currentUserId || m.ReceiverId == currentUserId) && m.Content.Contains(query)).ToListAsync();
+            return _mapper.Map<List<ResponseMessageDto>>(messages);
         }
 
         /// <summary>
@@ -248,12 +246,12 @@ namespace MinmalChat.Data.Services
         /// <remarks>
         /// This method is used to asynchronously fetch a message by its unique identifier. It returns a 'Message' object when the specified message is found and retrieved.
         /// </remarks>
-        public async Task<Message> GetMessageByIdAsync(int id)
+        public async Task<ResponseMessageDto> GetMessageByIdAsync(int id)
         {
             try
             {
                Message message = await _context.Messages.Where(m => m.Id == id).FirstOrDefaultAsync();
-               return message;
+               return _mapper.Map<Message, ResponseMessageDto>(message);
             }
             catch (Exception ex)
             {
