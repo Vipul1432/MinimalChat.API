@@ -29,7 +29,7 @@ namespace MinimalChat.API
             // Database connection string configuration
             builder.Services.AddDbContextPool<MinimalChatDbContext>(options =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("MinimalChatEntities"));
+                options.UseNpgsql(builder.Configuration.GetConnectionString("MinimalChatEntities"));
                 options.UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
             });
 
@@ -51,7 +51,7 @@ namespace MinimalChat.API
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
             })
 
