@@ -16,6 +16,7 @@ namespace MinmalChat.Data.Context
     {
         public MinimalChatDbContext(DbContextOptions<MinimalChatDbContext> options) : base(options)
         {
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         }
 
         public DbSet<Message> Messages { get; set; }
