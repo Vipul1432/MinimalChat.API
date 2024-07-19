@@ -32,10 +32,6 @@ namespace MinmalChat.Data.Services
         /// <returns>A task representing the result of the send operation.</returns>
         public async Task<bool> SendMessageAsync(Message message)
         {
-            if (string.IsNullOrWhiteSpace(message.Content))
-            {
-                return false;
-            }
             return await _messageRepository.AddAsync(message) != null;
         }
 

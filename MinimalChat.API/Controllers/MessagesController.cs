@@ -269,7 +269,7 @@ namespace MinimalChat.API.Controllers
                 }
                 // Map group messages
                 List<GroupMemberDto> groupMemberDtos = null;
-                if (messages.Members != null)
+                if (messages?.Members.Count > 0)
                 {
                     groupMemberDtos = messages.Members.ToList().ConvertAll(member =>
                     {
@@ -293,7 +293,7 @@ namespace MinimalChat.API.Controllers
                 var messageDtos = messages.Messages.Select(message =>
                 {
                     var messageDto = _mapper.Map<GetMessagesDto>(message);
-                    if (string.IsNullOrEmpty(messageDto.Content))
+                    if (string.IsNullOrEmpty(messageDto.Content) && string.IsNullOrEmpty(messageDto.GIFUrls))
                     {
                         string fileName = message.FilePath;
                         var filePath = Path.Combine(_applicationSettings.UploadDirectory, fileName);

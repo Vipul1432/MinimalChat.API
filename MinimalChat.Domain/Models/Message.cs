@@ -20,6 +20,7 @@ namespace MinimalChat.Domain.Models
         [Required]
         [MaxLength(1000)] 
         public string? Content { get; set; }
+        public string? GIFUrls { get; set; }
         [Required]
         public DateTime Timestamp { get; set; }
 
