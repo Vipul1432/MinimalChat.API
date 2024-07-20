@@ -12,8 +12,7 @@ namespace MinimalChat.Domain.DTOs
        
         public string? ReceiverId { get; set; }
         public Guid? GroupId { get; set; }
-        [Required]
-        [MaxLength(1000)]
-        public string Content { get; set; }
+        public string? Content { get; set; }
+        public string? GIFUrls { get; set; }
     }
 }

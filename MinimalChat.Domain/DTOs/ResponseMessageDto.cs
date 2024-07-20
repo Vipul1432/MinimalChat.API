@@ -12,6 +12,7 @@ namespace MinimalChat.Domain.DTOs
         public string SenderId { get; set; }
         public string? ReceiverId { get; set; }
         public string? Content { get; set; }
+        public string? GIFUrls { get; set; }
         public DateTime Timestamp { get; set; }
         public Guid? GroupId { get; set; }
         public string? FilePath { get; set; }
