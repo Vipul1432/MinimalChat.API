@@ -139,6 +139,19 @@ namespace MinimalChat.API
             });
 
             var app = builder.Build();
+            using (var scope = app.Services.CreateScope())
+            {
+                var serviceProvider = scope.ServiceProvider;
+                try
+                {
+                    var dbContext = serviceProvider.GetRequiredService<MinimalChatDbContext>();
+                    dbContext.Database.Migrate();
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Error applying migrations: {ex.Message}");
+                }
+            }
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
